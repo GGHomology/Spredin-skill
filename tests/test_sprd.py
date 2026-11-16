@@ -159,6 +159,49 @@ class FillLinesAsTheAppReadsThem(unittest.TestCase):
                          (20_000_000, 20_000_000 // 3, 2 ** 31 - 1, 2 ** 31))
 
 
+class NewerFilesAndOldScripts(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.dir.cleanup()
+
+    def book(self, text, zipped=True):
+        p = os.path.join(self.dir.name, "b.sprd")
+        with open(p, "wb") as f:
+            f.write(gzip.compress(text.encode("utf-8")) if zipped else text.encode("utf-8"))
+        return p
+
+    def test_a_file_from_a_newer_spredin_is_refused_as_the_app_refuses_it(self):
+        self.assertEqual(sum(c["newer"] for c in RULES["versions"]), 4)
+        for case in RULES["versions"]:
+            for zipped in (True, False):
+                with self.subTest(case["text"][:24], zipped=zipped):
+                    p = self.book(case["text"], zipped)
+                    for argv in (["info", p], ["read", p, "--format", "json"]):
+                        code, out, err = run(*argv)
+                        if case["newer"]:
+                            self.assertEqual((code, out), (1, ""))
+                            self.assertEqual(err.count("\n"), 1, "one line")
+                            self.assertIn("saved by a newer version of Spredin (file version ", err)
+                        else:
+                            self.assertEqual(code, 0, err)
+
+    def test_the_old_single_script_is_listed_as_spredin_opens_it(self):
+        sheets = '"sheets": [{"name": "S", "rows": {"0": "a"}}]'
+        cases = [
+            ('{"spredin": 1, %s, "script": "print(1)"}' % sheets, True),
+            ('{"spredin": 1, %s, "script": "  \\n "}' % sheets, False),
+            ('{"spredin": 1, %s, "scripts": [], "script": "print(1)"}' % sheets, False),
+            ('{"spredin": 1, %s, "scripts": {"name": "x"}, "script": "print(1)"}' % sheets, True),
+        ]
+        for text, listed in cases:
+            with self.subTest(text[-40:]):
+                code, out, err = run("info", self.book(text))
+                self.assertEqual(code, 0, err)
+                self.assertEqual("Python files: main.py" in out, listed, out)
+
+
 class Templates(unittest.TestCase):
     def test_placeholders(self):
         t = sprd.template_at

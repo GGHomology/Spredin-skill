@@ -815,5 +815,51 @@
     ]
    ]
   }
+ ],
+ "versions": [
+  {
+   "text": "{\"spredin\": 3, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": true
+  },
+  {
+   "text": "{\"spredin\": 999, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": true
+  },
+  {
+   "text": "{\"spredin\": 3.0, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": true
+  },
+  {
+   "text": "{\"spredin\": 1e2, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": true
+  },
+  {
+   "text": "{\"spredin\": 1000, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": false
+  },
+  {
+   "text": "{\"spredin\": 2.5, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": false
+  },
+  {
+   "text": "{\"spredin\": \"3\", \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": false
+  },
+  {
+   "text": "{\"spredin\": true, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": false
+  },
+  {
+   "text": "{\"spredin\": 2, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": false
+  },
+  {
+   "text": "{\"spredin\": 1, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": false
+  },
+  {
+   "text": "{\"spredin\": -3, \"active\": 0, \"sheets\": [{\"name\": \"S\"}]}",
+   "newer": false
+  }
  ]
 }

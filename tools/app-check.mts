@@ -279,8 +279,20 @@ rules.limits = limitCases.map((lc) => {
   return { ...lc, leftOut, kept };
 });
 
+// A file from a newer version of Spredin is refused, with nothing read.
+rules.versions = ['3', '999', '3.0', '1e2', '1000', '2.5', '"3"', 'true', '2', '1', '-3'].map((v) => {
+  const text = `{"spredin": ${v}, "active": 0, "sheets": [{"name": "S"}]}`;
+  try {
+    wb.parseSpredinText(text);
+    return { text, newer: false };
+  } catch (e) {
+    if ((e as Error).message !== wb.NEWER_FILE) throw e;
+    return { text, newer: true };
+  }
+});
+
 writeFileSync(join(FIX, 'rules.json'), JSON.stringify(rules, null, 1) + '\n');
 console.log(
   `rules: ${(rules.dual as unknown[]).length} dual-form files, ${(rules.fills as unknown[]).length} fill-line sheets, ` +
-    `${(rules.limits as unknown[]).length} limit cases read by the app`,
+    `${(rules.limits as unknown[]).length} limit cases and ${(rules.versions as unknown[]).length} version numbers read by the app`,
 );

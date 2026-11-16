@@ -263,9 +263,25 @@ def load(path):
         raise SprdError("not a .sprd workbook (the JSON is nested too deeply)") from None
     except ValueError as e:
         raise SprdError(f"not a .sprd workbook (the JSON does not parse: {e})") from None
-    if not isinstance(doc, dict) or not isinstance(doc.get("compactSheets", doc.get("sheets")), list):
+    if not isinstance(doc, dict):
+        raise SprdError("not a .sprd workbook (no sheets)")
+    if is_newer_version(doc.get("spredin")):
+        # As Spredin refuses it (workbook.ts deserializeWorkbook): such a file
+        # may hold parts this version would misread with nothing to say so.
+        raise SprdError(f"this workbook was saved by a newer version of Spredin (file version {int(doc['spredin'])}); "
+                        "update Spredin to open it")
+    if not isinstance(doc.get("compactSheets", doc.get("sheets")), list):
         raise SprdError("not a .sprd workbook (no sheets)")
     return doc
+
+
+def is_newer_version(v):
+    """Is `spredin` a version newer than the compact form's 2? A whole number
+    from 3 to 999, as the app judges it: 3.0 and 1e2 are whole numbers in
+    JSON, and one damaged value (3.7, 1e308, "3") costs nothing."""
+    if isinstance(v, bool) or not isinstance(v, (int, float)) or not 2 < v < 1000:
+        return False
+    return isinstance(v, int) or v.is_integer()
 
 
 def form_of(doc):
@@ -1207,6 +1223,8 @@ def cmd_info(args):
         if files:
             more = f", and {len(files) - 50:,} more" if len(files) > 50 else ""
             out.append("Python files: " + ", ".join(files[:50]) + more)
+    elif isinstance(doc.get("script"), str) and doc["script"].strip(_JS_SPACE):
+        out.append("Python files: main.py (the old single `script`, which Spredin opens as main.py)")
     pro = [what for key, what in (("decks", "slide decks"), ("memory", "assistant memory"), ("chat", "kept conversation")) if doc.get(key)]
     if pro:
         out.append("Spredin Pro parts: " + ", ".join(pro))

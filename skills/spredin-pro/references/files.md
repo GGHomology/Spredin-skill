@@ -89,6 +89,11 @@ A `.sprd` is UTF-8 JSON, gzipped (the app also reads it unzipped).
   fields are the cells from column A, quoted as in CSV when they hold `,` `"` or
   a line break. An empty field is an empty cell.
 - `styles` keys are `"row:col"`, both from 0.
+- `scripts`: the workbook's Python files. An old file may have one `script`
+  text instead, which Spredin opens as `main.py`.
+- `spredin` is the file's version: 1 (plain or dual) or 2 (compact). A whole
+  number from 3 to 999 means a newer Spredin saved it: Spredin refuses to open
+  it, and so does `sprd.py`.
 - **The compact form**, which the app writes by default, has `"spredin": 2`, the
   real sheets under `compactSheets`, and under `sheets` only a stub named
   *Update Spredin* (for old versions). Read `compactSheets` when it is there.
