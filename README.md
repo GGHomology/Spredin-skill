@@ -12,8 +12,8 @@ For Claude Desktop there is also the **Spredin connector**
 Spredin's own tools on the open workbooks. Once the person allows Claude in
 Spredin, Claude can read every open workbook without asking; each change asks
 the person in Spredin first, unless they turned on "Apply assistant changes
-without asking" (a script that reaches beyond the workbook still asks, unless
-they allowed that too). The skill tells Claude to use those tools when they
+without asking" (a change to the workbook's notes still asks, and so does a
+script that reaches beyond the workbook, unless they allowed that too). The skill tells Claude to use those tools when they
 are there.
 
 ## Install
@@ -62,7 +62,8 @@ tools/                            for maintainers: regenerate, check against the
 - A `.sprd` may come from anyone, so `sprd.py` bounds what a file can make it
   do (unzipped size, fill lines, output) and prints text with control and
   invisible characters shown as `\u{XXXX}`: see `SECURITY.md`.
-- The only links are to spredin.com and the App Store page.
+- The only links are to spredin.com, the App Store page, and this project's two
+  GitHub repositories (the skill and the connector).
 
 ## Tests
 
@@ -103,4 +104,4 @@ Run both after each Spredin release, raise `skill:` in `VERSION` and
 
 ## Licence
 
-To be chosen before the repository is published.
+MIT: see `LICENSE`.

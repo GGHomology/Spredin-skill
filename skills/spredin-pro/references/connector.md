@@ -10,18 +10,21 @@ through the same checks and approval rules as Spredin's own assistant.
 ## Before the first call
 
 - The person must have turned on **Settings → Connect AI Apps → Allow AI apps on
-  this Mac to connect** in Spredin. If a call says Spredin cannot be reached,
-  tell them exactly that, and that Spredin Pro must be open.
-- The first call brings up **Allow Claude to use Spredin?** in Spredin, and
-  the connector gives you a **pairing code** of 6 characters. Show the person
-  that code, and tell them to click **Allow** in Spredin **only if Spredin shows
-  the same code** (it writes it as `K7Q-M2X`); a different code, or no code,
-  means something else is asking, and they should click Don't Allow. Show the
-  code first, in your reply; then call the same tool again: that call waits
-  until they answer, and goes on when they allow. If it says they have not
-  answered yet, call it again to keep waiting. If they declined, do not ask
-  again unless they say so.
-- If a call says **Spredin no longer accepts this connection** (they
+  this Mac to connect** in Spredin, and Spredin Pro must be open **with a
+  workbook open**: it asks to allow the connection in a workbook's window. If
+  a call says Spredin Pro is not open, or "No workbook is open in Spredin
+  Pro.", tell them exactly that.
+- The first call comes back at once with a **pairing code** of 6 characters,
+  and Spredin shows **Allow Claude to use Spredin?**. Show the person that
+  code, in your reply, and tell them to click **Allow** in Spredin **only if
+  Spredin shows the same code** (it writes it as `K7Q-M2X`); a different code,
+  or no code, means something else is asking, and they should click Don't
+  Allow. Then call the same tool again: that call waits until they answer,
+  and goes on when they allow. If it says they have not answered yet, call it
+  again to keep waiting. If they declined, do not ask again unless they say so.
+- When Keep Edit History is off, the Allow sheet offers to turn it on, ticked
+  by default. It is a setting of the app, so it then applies to every workbook.
+- If a call says **Spredin Pro does not accept this connection** (they
   disconnected Claude in Spredin, or another program is answering), do not
   retry. Tell the person, and call `connect_spredin` only if they ask to
   connect again.
@@ -40,30 +43,51 @@ working in when several are open.
 | Tool | Use it to |
 |---|---|
 | `describe_sheet` | see a sheet's tables, headers, formulas and formats |
-| `read_range` | read cells exactly (`Sheet!A1:F40`), formulas as written |
+| `read_range` | read cells exactly (`Sheet!A1:F40`): at most 400 cells; text over 80 characters is cut unless you read one cell; formulas only with `formulas=true` |
 | `aggregate` | totals, counts, averages over a column without reading every row |
-| `find` | find text or numbers in a sheet |
+| `find` | cells whose shown value contains the text, in any case: up to 30 |
 | `get_selection` | what the person has selected |
-| `write_cells` | write cells from a top-left cell; `=…` is a formula; `fill_down` copies a formula row down a table |
-| `run_python` | change many cells, clean data, build pivots and charts (the Python API: python-api.md); `python_help` lists it |
+| `write_cells` | write cells from a top-left cell; `=…` is a formula; `fill_down` copies a formula row down a table. Texts are read as if typed: `1,200`, `50%` and dates become numbers; a leading `'` keeps text |
+| `run_python` | change many cells, clean data, build pivots and charts (the Python API: python-api.md); `python_help` lists it. See below before using it to read |
 | `memory` | read or change the workbook's notes for the assistant |
-| `slides` | read and edit the workbook's linked slide decks |
+| `slides` | read and edit the workbook's linked slide decks; present one; export one (Spredin's save panel opens, and the person chooses where) |
+
+### `run_python` changes the workbook, even to read
+
+A script from a connected app is saved in the workbook as `assistant.py`
+(replacing a file of that name), the Python panel opens, and the workbook is
+marked unsaved, even when the script only reads. So to read, use
+`read_range`, `aggregate`, `describe_sheet` or `find`. A script that only reads,
+and reaches nothing beyond the workbook, runs without a card. Do not import
+the workbook's own scripts unless the person has seen them (SKILL.md rule 4).
 
 ## Changes, and when they ask first
 
 Each change (`write_cells`, a script that writes, `memory` and `slides`
 edits) shows a card in Spredin's lower right corner, with **Allow** and
-**Don't Allow**, and your call waits until they answer. Tell them a card is
-waiting when you make a change.
+**Don't Allow**, and your call waits until they answer. The card is in the
+window of the workbook the tools act on: when several are open, say which
+workbook to look in. Tell them a card is waiting when you make a change. A
+card left unanswered for 15 minutes is withdrawn, and nothing changes.
 
 That is unless they turned on **Apply assistant changes without asking**
 (Settings → AI Model → Assistant): then changes apply at once, and Spredin's
-corner says so. A script that reaches beyond the workbook (the network,
-files, the printer) still asks, unless they also turned on **Also run scripts
-that reach beyond the workbook without asking**. So never count on a card to
-catch a mistake: say what you will change before you change it.
+corner says so, with two exceptions:
+
+- A change to the workbook's notes (`memory`, or a script that calls
+  `set_memory`) from a connected app always asks.
+- A script that reaches beyond the workbook (the network, files, the
+  printer, code built while it runs, a pause) asks, unless they also turned
+  on **Also run scripts that reach beyond the workbook without asking**. A
+  script that imports one of the workbook's own scripts is judged with what
+  that script reaches too.
+
+So never count on a card to catch a mistake: say what you will change before
+you change it.
 
 - **Declined** means no: do not retry the same change; ask what they want.
+- A request larger than 2 MB is not sent, and you are told to split it: write
+  in smaller parts, or build the data with `run_python`.
 - Each change is ONE undo step (⌘Z in Spredin).
 - With Edit History on, Spredin records each change as "Claude · connected".
 

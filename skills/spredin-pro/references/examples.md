@@ -48,11 +48,16 @@ out = sheet.add_sheet('Summary', replace=True)      # re-running updates one she
 out.write(summary, 'A1')
 out.chart('A1:B%d' % (len(summary) + 1), 'bar', 'Revenue by region')
 sheet.pivot(sheet.used_range, rows=['Region'], values=[('Revenue', 'sum')], name='Pivot')
+# Run again, this last line adds a second pivot, "Pivot (2)". To change the
+# pivot later: sheet.book('Pivot').update_pivot(rows=['Region'], values=[...]).
 ```
 
 A pivot made this way can be edited from its sheet like one made from the menu.
 
 ## 5. Clean a column (Python panel)
+
+For plain data. This writes the whole table back as values, so a formula in it
+becomes its value:
 
 ```python
 import pandas as pd
@@ -60,6 +65,17 @@ df = sheet.read()
 df['Email'] = df['Email'].str.strip().str.lower()
 df = df.drop_duplicates('Email')
 sheet.write(df, 'A1', replace=True)     # replace=True clears the old, longer table
+```
+
+For a table with formulas, write only the Email column, then remove the rows
+that are the same in every column (formulas stay live and follow their rows):
+
+```python
+df = sheet.read()                                   # the header is row 1
+col = list(df.columns).index('Email')
+sheet.write_col(col, df['Email'].str.strip().str.lower().tolist(), start_row=1)
+last = sheet.a1(sheet.rows - 1, sheet.cols - 1)     # the table's bottom-right cell
+print(sheet.remove_duplicates('A2:' + last), 'rows removed')
 ```
 
 ## 6. A total on screen (computer use)

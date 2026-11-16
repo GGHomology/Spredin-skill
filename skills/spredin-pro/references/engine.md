@@ -29,7 +29,10 @@ https://spredin.com/benchmarks.
   `""` is text: `=A1+1` on it is `#VALUE!`.
 - In `=`, `<`, `>`: every number comes before every text, and text before FALSE
   and TRUE; different kinds are never equal (`="5"=5` is FALSE). Text compares
-  without regard to capitals, except EXACT and FIND.
+  without regard to capitals, except EXACT and FIND. One exception, on purpose:
+  a number from a cell against text that reads as a number compares by its
+  digits, so `=A2="5"` is TRUE when A2 holds a typed 5 (Excel says FALSE).
+- An empty cell equals 0, `""` and FALSE.
 - Errors pass through functions unless catching them is the function's job
   (IFERROR, IFNA, the IS functions, AGGREGATE with an option that skips them).
 
@@ -43,8 +46,9 @@ https://spredin.com/benchmarks.
 | `TRUE` · `false` | a logical value |
 | `#N/A` and the other error names | that error |
 | `007` · more than 15 digits · `SEPT2` · `Mar 2025` · `3/4` | text, as written |
-| `'anything` | text (the apostrophe is not shown) |
-| `=…` | a formula; if it cannot be read, text |
+| `'007` · `'=x` · `'TRUE` | text (the apostrophe is not shown) |
+| `'tis` · `'s-Hertogenbosch` | text with its apostrophe: before an ordinary word it is a character |
+| `=…` | a formula; one that cannot be read stays a formula and shows `#ERROR!` (only CSV import turns it into text) |
 
 A Python script is exempt: `sheet.set(r, c, "50%")` writes the text `50%`; a
 Python date, or ISO text like `2024-01-15`, becomes a date. Files you write are
@@ -60,6 +64,12 @@ stored as written (files.md).
   `7`, as Excel does.
 - **SUMIF and COUNTIF over a closed linked workbook** answer from the values the
   file keeps (Excel shows `#VALUE!` until the other file is opened).
+- **A tiny difference left by `+` or `-` is 0 wherever it arises**:
+  `=(0.5-0.4-0.1)=0` is TRUE. A result smaller than 2^-48 of its numbers is
+  taken as 0 (Excel does that only for a formula's last step outside
+  brackets, so it says FALSE here).
+- **Number-like text against a cell's number** compares by its digits (see
+  Values and comparisons).
 
 ## Filling
 
@@ -93,12 +103,15 @@ stored as written (files.md).
   reference to a deleted cell becomes `#REF!`; a range shrinks or grows.
 - Cut and paste moves: formulas that read the cells follow them.
 - Paste starts at the top-left of the selection; one copied cell fills a selected
-  range. Paste Values pastes the values the cells show.
+  range. Paste Values pastes each cell's worked-out value with every digit (not
+  the formatted text it shows).
 
 ## Undo
 
 - Every action is one step: a paste, a sort, a fill, a whole script run, an
-  assistant change. 200 steps are kept. Opening another file starts a new list.
+  assistant change. Up to 200 steps are kept, fewer after very large changes
+  (the steps kept hold about a million cells in all). Opening another file
+  starts a new list.
 
 ## Large workbooks
 

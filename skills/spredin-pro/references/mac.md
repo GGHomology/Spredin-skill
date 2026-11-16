@@ -28,7 +28,7 @@ open -a "Spredin Pro"                            # starts the app
 | Ctrl+C / X / V | ⌘C / ⌘X / ⌘V | copy / cut (a move) / paste; Edit menu for Paste Values and the rest |
 | Ctrl+Z / Ctrl+Y | ⌘Z / ⇧⌘Z | undo / redo |
 | Ctrl+B / I / U | ⌘B / ⌘I / ⌘U | bold / italic / underline |
-| F2 | F2 or ⌃U | edit the active cell |
+| F2 | fn F2, or ⌃U | edit the active cell |
 | F4 | ⌘T | cycle `$` in the reference under the cursor (macOS takes F4) |
 | Alt+Enter | ⌥Return | line break inside a cell |
 | Ctrl+Enter | ⌘Return | the entry in every selected cell |
@@ -43,10 +43,12 @@ open -a "Spredin Pro"                            # starts the app
 | Ctrl+A | ⌘A | the table around the active cell; again for the whole sheet |
 | Shift+Space / Ctrl+Space | ⇧Space / ⌃Space | select the row / the column |
 | Ctrl+PageDown / Ctrl+PageUp | ⌥→ / ⌥← (or ⌃fn↓ / ⌃fn↑) | next / previous sheet |
-| F9 | F9 | calculate TODAY, NOW, RAND and what reads them again |
+| F9 | fn F9, or Data → Calculate Now | calculate TODAY, NOW, RAND and what reads them again |
 | (none) | ⌘K | the command palette: every command by name |
 | Esc | Esc, or ⌘. | cancel; ⌘. also cancels a cut |
 
+On a Mac keyboard the top row is for brightness, sound and the like: F2 and
+F9 need fn held (unless the keyboard is set to use them as function keys).
 Most Mac keyboards have no Page keys: Page Down is fn+↓. ⌃Space may be taken by
 the input-source switch; click the column letter instead. The full list of
 commands with their keys is in menus.md.

@@ -65,7 +65,7 @@ saving over it. So: ask the user to close the window, edit, then
 - `formats`: a range and either a number format (see python-api.md, "Number
   formats") or an object with any of `numFmt`, `bold`, `italic`, `underline`,
   `color`, `fill` (`"#rrggbb"`), `align` (`left` / `center` / `right`),
-  `valign`, `wrap`, `fontFamily`, `fontSize`.
+  `valign` (`top` / `middle` / `bottom`), `wrap`, `fontFamily`, `fontSize`.
 - `widths`: column letter → width in pixels. `freeze`: rows and columns kept in
   view. `names`: defined names.
 - Charts, pivots, conditional formats, validation and slides are not in the
@@ -73,6 +73,11 @@ saving over it. So: ask the user to close the window, edit, then
 - It refuses to write over an existing file unless `--replace` is given, and
   checks sheet names as Excel does (at most 31 characters, none of `[ ] : * ? / \`,
   and no control characters).
+- **It cannot change a workbook in place.** `write --replace` writes a new
+  workbook from the spec alone: the old file's charts, scripts, slides,
+  formats, names and document id are gone (so its Edit History starts over).
+  To change an existing workbook, use the connector (connector.md) or a
+  Python panel script (python-api.md).
 
 ## The `.sprd` layout (for reading, or writing by hand)
 

@@ -75,9 +75,13 @@ C1 covers the first time).
 
 **C1. The first time.** Not allowed yet.
 Say: *"What is the total of the Units column?"*
-- [ ] Shows the 6-character pairing code the connector gave, and tells the user
-  to click Allow in Spredin only if Spredin shows the same code.
-- [ ] After they do, answers with the exact total from the tools.
+- [ ] The first call comes back at once with a code: Claude shows the
+  6-character pairing code in its reply, and tells the user to click Allow in
+  Spredin only if Spredin shows the same code.
+- [ ] Then calls the same tool again (that call waits for the answer), and
+  after Allow goes on by itself.
+- [ ] Answers with the exact total from the tools (622), read with `aggregate`
+  or `read_range`, not a `run_python` script.
 
 **C2. A change.** Say: *"Add a Total column: units times price."*
 - [ ] One `write_cells` with a formula and `fill_down` (or one script), not a
@@ -98,8 +102,20 @@ Say: *"What is the total of the Units column?"*
 
 **C6. Disconnected.** Claude was allowed; the user then clicks Disconnect in
 Settings → Connect AI Apps. Say: *"Total column B."*
-- [ ] Says Spredin no longer accepts the connection, does not retry, and does
-  not call `connect_spredin` until the user asks to connect again.
+- [ ] Tells the user the connector's words, "Spredin Pro does not accept this
+  connection", does not retry, and does not call `connect_spredin` until the
+  user asks to connect again.
+
+**C7. No workbook open.** Spredin Pro open with no window. Say: *"What is in
+B2?"*
+- [ ] Says no workbook is open in Spredin Pro and asks the user to open one;
+  does not guess.
+
+**C8. Auto apply.** Settings → AI Model → Apply assistant changes without
+asking is on. Say: *"Remember in the workbook's notes that prices are in
+euros."*
+- [ ] Tells the user a card is waiting: a change to the notes from a
+  connected app asks even with that setting on.
 
 ## Safety
 

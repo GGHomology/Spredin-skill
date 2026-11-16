@@ -4,7 +4,8 @@
 
 - **Spredin Pro** (Mac App Store, paid). Everything below.
 - **Spredin** (free, from spredin.com). The same spreadsheet, files and Python
-  panel, without Pro's assistant, slides, edit history and formula preview.
+  panel, without Pro's assistant, slides, edit history, formula preview,
+  Connect AI Apps and Excel Key Chains.
   Each edition keeps the other's parts of a `.sprd` when it saves.
 - Mac: Apple silicon (M1 or later), macOS 13 or later. Windows: planned.
 
@@ -29,7 +30,8 @@
 **Panels** open beside the grid, docked left, right or at the bottom, or in a
 window of their own: **Python** (Tools → Show Python Panel), **Assistant** (Pro,
 Tools → Show Assistant), **Slides** (Pro, the Slides button), **History** (Pro,
-Tools → Show History, when Settings → Keep Edit History is on).
+Tools → Show History, when Settings → Edit History → Keep Edit History is on;
+it docks at the left or the right only).
 
 **Command palette**: ⌘K on the Mac. Every menu item is in it; type a few words
 ("freeze", "pivot", "paste values") and press Return.
@@ -46,8 +48,10 @@ Tools → Show History, when Settings → Keep Edit History is on).
   links to cells, so they change when the cells do. Present, print, export PDF or
   HTML. Scripts drive them (python-api.md, "Slides").
 - **Edit History**: off by default (Settings → Edit History → Keep Edit
-  History). When on, every change is recorded on this computer, beside the
-  file, cell by cell, with "Undo from here". A change Claude makes through the
+  History). When on, every change is recorded cell by cell, with "Undo from
+  here". The record is kept in Spredin's own folder on this Mac, not in the
+  file or its folder: a copy of the file, or a file sent to someone, carries
+  none. A change Claude makes through the
   connector is recorded as "Claude · connected"; on screen, as "Claude · on
   screen" while Mark Changes as Claude's is on (driving.md). Record More Detail
   (same submenu) also keeps what Claude read and each change's script or cells.
@@ -55,6 +59,8 @@ Tools → Show History, when Settings → Keep Edit History is on).
   default): lets Claude Desktop use Spredin's tools through the Spredin
   connector extension (connector.md).
 - **Formula Preview**: off by default; shows the active formula as mathematics.
+- **Excel Key Chains** (Settings → Excel Key Chains): Windows Excel's Alt-key
+  sequences on ⌥ (mac.md).
 - **Help → Formula Reference**: every function in plain words (functions.md is
   the same content, shorter).
 
@@ -63,8 +69,9 @@ Tools → Show History, when Settings → Keep Edit History is on).
 - ⌘S saves; the first save asks where and in which format (Spredin Workbook
   `.sprd`, or Excel `.xlsx`). `.sprd` keeps everything; `.xlsx` says before
   saving what it cannot keep.
-- With AutoSave on, changes are written a few seconds after they are made, and
-  earlier versions are kept on this computer (File → Revert To → Browse Versions).
+- With AutoSave on, changes are written a few seconds after they are made.
+- Earlier versions of a Spredin Workbook are kept on this computer when it is
+  saved, with ⌘S as well as with AutoSave (File → Revert To → Browse Versions).
 - Closing a window with unsaved changes asks: Don't Save, Cancel, Save.
 - Crash recovery keeps a snapshot of unsaved work, up to a size limit (the status
   bar says "No crash recovery" when past it).

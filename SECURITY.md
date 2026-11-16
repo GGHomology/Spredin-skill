@@ -102,11 +102,12 @@ that the bytes repeat and a changed tree is refused.
 - Run only scripts the user has seen; never type secrets; read every dialog
   button before pressing one; say what will change before changing a file.
 - Through the Spredin connector: show the user the pairing code and have them
-  allow the connection only if Spredin shows the same code; if Spredin no
-  longer accepts the connection, do not retry. Once allowed, Claude can read
+  allow the connection only if Spredin shows the same code; if Spredin Pro
+  does not accept the connection, do not retry. Once allowed, Claude can read
   every open workbook without asking; each change asks in Spredin Pro unless
-  the user turned on "Apply assistant changes without asking", and a script
-  that reaches beyond the workbook still asks unless they allowed that too.
+  the user turned on "Apply assistant changes without asking". Even then a
+  change to the workbook's notes asks, and a script that reaches beyond the
+  workbook asks unless they allowed that too.
 
 These are instructions to a model, not guarantees: Spredin Pro's own approval
 cards and undo are what stand between a mistaken or misled model and the

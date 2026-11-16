@@ -26,6 +26,9 @@ History records what you change as Claude's:
    **Stop**) when you
    are done, before the person works again.
 
+Marking works in the window it was turned on in, and ends when that window
+closes: turn it on in each workbook's window you work in.
+
 If the Spredin connector's tools are available, use them instead of the
 screen (connector.md): Spredin records those changes as Claude's by itself.
 
@@ -92,17 +95,25 @@ formula bar and status bar, but not the cells. So:
 - **Replace?** when saving over a file, and **the file was changed by another
   app**: ask the user.
 - Saving the first time opens the system's save panel: the name field, the
-  folder, a **File Format** menu (Spredin Workbook or Excel Workbook), Save.
+  folder, a **File Format** menu, Save. The menu has five choices: Spredin
+  Workbook, Excel Workbook, CSV, TSV and JSON (and Excel Macro-Enabled
+  Workbook for a workbook that came with macros). CSV, TSV and JSON write a
+  copy: the document stays as it was, and unsaved.
+- **Run a script from this workbook?** means the workbook came with someone
+  else's scripts. Stop and ask the person; never press Run Script for them.
 
 ## The Python panel (for many cells at once)
 
 1. Tools → Show Python Panel (or ⌘K "Python").
-2. Click into the code editor, select all (⌘A) and replace it with your script.
-   Pasting from the clipboard is the cleanest way to put a script in: the editor
-   indents new lines by itself, so typing a long script line by line can double
-   its indentation.
+2. Put your script in a new file: open the file list (the button with the
+   current file's name, in the panel's top bar), click **+** (New script
+   file), then click into the new file's editor. Do not paste over a script that
+   is already there: it is the person's. Pasting from the clipboard is the
+   cleanest way to put a script in: the editor indents new lines by itself, so
+   typing a long script line by line can double its indentation.
 3. Press **Run** (⌘Return). The Output pane shows what the script printed, and a
-   traceback if it failed. The whole run is one undo step.
+   traceback if it failed. The whole run is one undo step. If **Run a script
+   from this workbook?** appears, stop and ask the person (Dialogs, above).
 4. Show the user the script before you run it if they have not seen it.
 
 The API: python-api.md. A script works on the open workbook only; it cannot read
