@@ -23,6 +23,8 @@ saving over it. So: ask the user to close the window, edit, then
 
 - A number: plain digits, a point for decimals, no thousands separators or
   currency signs: `1200`, `-3.5`, `0.075`. The look goes in a number format.
+  A whole number of 16 or more digits takes an exponent, as Spredin writes it:
+  `1.234567890123456E+15`. Written out in full it is read as text (an ID).
 - Text: as is. A digit string with leading zeros (`007`) or more than 15 digits
   stays text. A leading apostrophe forces text: `'1200`, `'=not a formula`.
 - A formula: `=` and Excel's syntax: `=SUM(B2:B9)`, `='Sales 2026'!B7*Rate`.
@@ -57,6 +59,9 @@ saving over it. So: ask the user to close the window, edit, then
 
 - `rows` start at `at` (default `A1`); `cells` set single cells after them
   (`null` empties one). Values: text, numbers, `true` / `false`, `null`.
+  Numbers are written as Spredin writes them: `1234567890123456` in the spec
+  becomes the number `1.234567890123456E+15`; give the digits in quotes for
+  text (an ID).
 - `formats`: a range and either a number format (see python-api.md, "Number
   formats") or an object with any of `numFmt`, `bold`, `italic`, `underline`,
   `color`, `fill` (`"#rrggbb"`), `align` (`left` / `center` / `right`),

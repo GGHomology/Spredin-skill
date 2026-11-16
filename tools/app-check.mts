@@ -26,6 +26,7 @@ const SPRD = join(ROOT, 'skills', 'spredin-pro', 'scripts', 'sprd.py');
 
 const wb = await import(join(SRC, 'src/grid/workbook.ts'));
 const coords = await import(join(SRC, 'src/grid/coords.ts'));
+const numparse = await import(join(SRC, 'src/grid/numparse.ts'));
 type Sheet = ReturnType<typeof wb.makeSheet>;
 
 const label = (r: number, c: number) => coords.cellLabel(r, c) as string;
@@ -123,16 +124,25 @@ try {
     if (!s || s.name !== ss.name) return fail(`sheet ${i + 1} is ${s?.name}, the spec says ${ss.name}`);
     const want: Record<string, string> = {};
     const at = coords.parseA1((ss.at as string) ?? 'A1');
-    const text = (v: unknown) => (v === null ? '' : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : String(v));
+    // A number is written as the app writes one (numparse.ts numberText), and read back as that number.
+    const text = (v: unknown) =>
+      v === null ? '' : typeof v === 'boolean' ? (v ? 'TRUE' : 'FALSE') : typeof v === 'number' ? (numparse.numberText(v) as string) : String(v);
+    const numbers = new Map<string, number>();
     ((ss.rows as unknown[][]) ?? []).forEach((row, dr) =>
       row.forEach((v, dc) => {
         if (text(v) !== '') want[label(at.r + dr, at.c + dc)] = text(v);
+        if (typeof v === 'number') numbers.set(label(at.r + dr, at.c + dc), v);
       }),
     );
-    for (const [a, v] of Object.entries((ss.cells as Record<string, unknown>) ?? {})) want[a] = text(v);
+    for (const [a, v] of Object.entries((ss.cells as Record<string, unknown>) ?? {})) {
+      want[a] = text(v);
+      if (typeof v === 'number') numbers.set(a, v);
+    }
     const have = cellsOf(s);
     for (const k of new Set([...Object.keys(want), ...Object.keys(have)]))
       if (want[k] !== have[k]) fail(`${ss.name}!${k}: app reads ${JSON.stringify(have[k])}, spec ${JSON.stringify(want[k])}`);
+    for (const [k, v] of numbers)
+      if (numparse.rawNumericValue(have[k] ?? '') !== v) fail(`${ss.name}!${k}: app reads ${JSON.stringify(have[k])} as ${numparse.rawNumericValue(have[k] ?? '')}, not the number ${v}`);
     for (const [rng, fmt] of Object.entries((ss.formats as Record<string, unknown>) ?? {})) {
       const r = coords.parseRangeLabel(rng);
       const style = typeof fmt === 'string' ? { numFmt: fmt } : (fmt as Record<string, unknown>);
@@ -279,6 +289,19 @@ rules.limits = limitCases.map((lc) => {
   return { ...lc, leftOut, kept };
 });
 
+// Numbers in a spec, written as the app writes a number in a cell. As JSON
+// text, so both languages read the same double.
+let seed = 20261116;
+const rnd = () => ((seed = (Math.imul(seed, 1103515245) + 12345) >>> 0) / 2 ** 32);
+const numberTexts = [
+  '0', '-0', '-0.0', '1', '1.0', '1200', '412.35', '0.1', '0.30000000000000004', '1e-7', '0.000001', '1e-6', '123456.789',
+  '999999999999999', '1000000000000000', '1234567890123456', '9007199254740993', '12345678901234567890',
+  '99999999999999999999', '1e21', '1.5e300', '-1234567890123456', '-12345678901234567890', '1E5', '5e-324', '1.7976931348623157e308',
+];
+for (let e = -30; e <= 30; e++) for (let i = 0; i < 4; i++) numberTexts.push(String((rnd() * 10 + 1) * 10 ** e * (rnd() < 0.2 ? -1 : 1)));
+for (let d = 15; d <= 25; d++) for (let i = 0; i < 3; i++) numberTexts.push(String(1 + Math.floor(rnd() * 9)) + Array.from({ length: d - 1 }, () => Math.floor(rnd() * 10)).join(''));
+rules.numbers = numberTexts.map((t) => [t, numparse.numberText(JSON.parse(t)) as string]);
+
 // A file from a newer version of Spredin is refused, with nothing read.
 rules.versions = ['3', '999', '3.0', '1e2', '1000', '2.5', '"3"', 'true', '2', '1', '-3'].map((v) => {
   const text = `{"spredin": ${v}, "active": 0, "sheets": [{"name": "S"}]}`;
@@ -294,5 +317,6 @@ rules.versions = ['3', '999', '3.0', '1e2', '1000', '2.5', '"3"', 'true', '2', '
 writeFileSync(join(FIX, 'rules.json'), JSON.stringify(rules, null, 1) + '\n');
 console.log(
   `rules: ${(rules.dual as unknown[]).length} dual-form files, ${(rules.fills as unknown[]).length} fill-line sheets, ` +
-    `${(rules.limits as unknown[]).length} limit cases and ${(rules.versions as unknown[]).length} version numbers read by the app`,
+    `${(rules.limits as unknown[]).length} limit cases, ${(rules.versions as unknown[]).length} version numbers ` +
+    `and ${(rules.numbers as unknown[]).length} numbers read or written by the app`,
 );

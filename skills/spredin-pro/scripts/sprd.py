@@ -1353,6 +1353,44 @@ def check_sheet_name(name, seen):
     seen.add(name.lower())
 
 
+def _digits(f):
+    """For f > 0: the shortest digits that read back as f, and where the point
+    goes (f is 0.DIGITS times 10 to that power)."""
+    mant, _, e = repr(f).partition("e")
+    whole, _, frac = mant.partition(".")
+    digits = whole + frac
+    lead = len(digits) - len(digits.lstrip("0"))
+    return digits[lead:].rstrip("0"), len(whole) + (int(e) if e else 0) - lead
+
+
+def _js_string(f):
+    """A float as JavaScript's String(f) writes it."""
+    if f == 0:
+        return "0"
+    digits, n = _digits(abs(f))
+    k = len(digits)
+    if k <= n <= 21:
+        out = digits + "0" * (n - k)
+    elif 0 < n <= 21:
+        out = digits[:n] + "." + digits[n:]
+    elif -6 < n <= 0:
+        out = "0." + "0" * -n + digits
+    else:
+        out = digits[0] + ("." + digits[1:] if k > 1 else "") + ("e+" if n >= 1 else "e-") + str(abs(n - 1))
+    return ("-" if f < 0 else "") + out
+
+
+def number_text(f):
+    """A number as Spredin writes it in a cell (numparse.ts numberText): as
+    JavaScript writes it, but a whole number of 16 or more digits with an
+    exponent (1.234567890123456E+15), since 16 digits read as an ID, as text."""
+    t = _js_string(f)
+    if len(t) <= 15 or not t.isdigit():
+        return t
+    digits, n = _digits(f)
+    return digits[0] + ("." + digits[1:] if len(digits) > 1 else "") + "E+" + str(n - 1)
+
+
 def cell_text(v, where):
     if v is None:
         return ""
@@ -1361,11 +1399,12 @@ def cell_text(v, where):
     if isinstance(v, int):
         if abs(v) >= 10 ** 300:
             raise SprdError(f"{where}: the number is too large for a cell")
-        return str(v)
+        # Up to 15 digits exactly; past that the number Spredin holds, written its way.
+        return str(v) if abs(v) < 10 ** 15 else number_text(float(v))
     if isinstance(v, float):
         if v != v or v in (float("inf"), float("-inf")):
             raise SprdError(f"{where}: {v!r} is not a number a cell can hold")
-        return repr(v) if v != int(v) or abs(v) >= 1e15 else str(int(v))
+        return number_text(v)
     if isinstance(v, str):
         if len(v) > MAX_FIELD_CHARS:
             raise SprdError(f"{where}: more than {MAX_FIELD_CHARS:,} characters")

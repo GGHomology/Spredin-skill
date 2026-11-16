@@ -17,7 +17,9 @@
         "D8": true,
         "A9": "line one\nline two",
         "B9": "=Rate*D6",
-        "A10": "Smith, J"
+        "A10": "Smith, J",
+        "B10": 1234567890123456,
+        "C10": "1234567890123456"
       },
       "formats": {
         "A1:E1": {"bold": true, "fill": "#e8eef6"},

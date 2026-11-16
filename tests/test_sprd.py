@@ -349,6 +349,8 @@ class Writes(unittest.TestCase):
         self.assertEqual(budget["D8"], "TRUE")
         self.assertEqual(budget["B8"], "'1200")
         self.assertNotIn("B5", budget, "null is an empty cell")
+        self.assertEqual(budget["B10"], "1.234567890123456E+15", "16 digits as a number, as Spredin writes one")
+        self.assertEqual(budget["C10"], "1234567890123456", "the same digits as text stay text")
         rates = cells_by_label(sprd.sheet_files(doc)[1])
         self.assertEqual(rates, {"B2": "Rate", "C2": "0.075", "B3": "Months", "C3": "12"})
         self.assertEqual(doc["names"], {"Rate": "'Rates 2026'!$C$2"})
@@ -380,6 +382,13 @@ class Writes(unittest.TestCase):
                 self.assertEqual(code, 1)
                 self.assertIn(words, err)
                 self.assertFalse(os.path.exists(self.out))
+
+    def test_numbers_are_written_as_the_app_writes_them(self):
+        # Every number in rules.json, as JSON text, and the app's numberText for it.
+        self.assertGreater(len(RULES["numbers"]), 300)
+        for text, want in RULES["numbers"]:
+            with self.subTest(text):
+                self.assertEqual(sprd.cell_text(json.loads(text), "x"), want)
 
     def test_numbers_are_written_as_the_app_reads_them(self):
         self.assertEqual(sprd.cell_text(1200, "x"), "1200")
