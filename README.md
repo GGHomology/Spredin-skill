@@ -75,7 +75,9 @@ python3 -m unittest discover -s tests -v
   allowlist, no private paths or key-like text, the script's imports and calls,
   and that the generated files carry the version in `VERSION`.
 - `test_sprd.py`: `sprd.py` against workbooks written by Spredin itself in each
-  form it writes, the app's rules for fill lines, a plain reference model on
+  form it writes, and against what Spredin reads from small hand-made files
+  (`tests/fixtures/rules.json`: which fill lines it keeps, the cells it gives,
+  its limits on a sheet's fill lines, the dual form); a plain reference model on
   random sheets, its writer's checks, and the command line.
 - `test_hostile.py`: files made to hurt it (a decompression bomb, fill lines over
   a whole sheet, a far-away cell, hidden characters, huge cells, broken shapes),
@@ -93,7 +95,7 @@ python3 -m unittest discover -s tests -v
 cd <spredin-pro checkout>
 node_modules/.bin/vite-node <this repo>/tools/gen-refs.mts           # regenerate the 3 generated files
 node_modules/.bin/vite-node <this repo>/tools/gen-refs.mts --check   # fails if they are out of date
-node_modules/.bin/vite-node <this repo>/tools/app-check.mts          # fixtures + sprd.py write read by the app
+node_modules/.bin/vite-node <this repo>/tools/app-check.mts          # fixtures, rules.json, and sprd.py write read by the app
 ```
 
 Run both after each Spredin release, raise `skill:` in `VERSION` and

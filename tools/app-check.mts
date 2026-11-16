@@ -180,5 +180,107 @@ rules.dual = dualDocs.map((doc) => {
   return { doc, form: got.form, cells: cellsOf(got.sheets[0]) };
 });
 
+// Fill lines in a compact file: which the app keeps (a template must be what
+// its writer would write), and the cells it gives. Each case is one sheet.
+// The cases that need defined names come last: the app remembers every name
+// it was told (editops.ts noteDefinedNames), so they must not reach the others.
+const sc = await import(join(SRC, 'src/grid/sprdCompact.ts'));
+const ed = await import(join(SRC, 'src/grid/editops.ts'));
+const RATD = coords.colIndex('RATD') as number;
+const fillCases: Record<string, string[]> = {
+  quoted: ['A1:A3 ="Row {row}"'],
+  absolute: ['A2:A4 =$B${row}'],
+  oneColumn: ['B2:B4 ={col}1*2'],
+  notFormula: ['A1:A3 x{row}'],
+  written: ['A1:A3 =B5'],
+  unknown: ['A1:A3 =A{rows}'],
+  leftOfA: ['A1:A3 ={col-1}{row}'],
+  lowercase: ['A1:A3 =b{row}+$c$01'],
+  block: ['B2:D4 ={col-1}{row}*2'],
+  wholeColumns: ['B1:C3 =SUM({col}:{col})+ROWS($1:{row})'],
+  colsReversed: ['A1:B3 =SUM({col+1}:$B)'],
+  rowsReversed: ['A2:A4 =ROWS({row+1}:$3)'],
+  braces: ['A1:A2 ="{{"&A{row}&"}}"'],
+  curly: ['A1:A3 =\u201cx{row}\u201d'],
+  curlyCloses: ['A1:A3 ="x\u201c&B{row}'],
+  sheetLikeCell: ['A1:A3 =Q1!B{row}'],
+  quotedSheet: ["A1:A3 ='Q1 2025'!B{row}"],
+  quoteInSheet: ["A1:A3 ='Bob''s'!B{row}"],
+  functionName: ['A1:A3 =LOG10(B{row})+DEC2BIN(C{row})'],
+  table: ['A1:A3 =SUM(T[Q1])+B{row}'],
+  linked: ['A1:A3 =[1]Sheet1!B{row}'],
+  sheetRun: ['A1:A3 =SUM(Jan:Dec!B{row})'],
+  zeros: ['A1:A3 =A{row+007}*2'],
+  minusZero: ['A1:A3 =B{row-0}'],
+  bigOffset: ['A1:A3 =A{row+1000000000000000}'],
+  overlap: ['A1:A3 =B{row}', 'A2:A5 =C{row}', 'C1:C2 =D{row}'],
+  mixed: ['B2:C3 =$A{row}+{col}$1'],
+  pastZZZZ: ['A1:B2 ={col+475253}{row}'],
+  wideSheet: ['A1:A3 =\u6570\u636e!B{row}'],
+  wideWord: ['A1:A3 =\u00c4B{row}'],
+  dollarRange: ['$A$1:$A$3 =B{row}'],
+  lowerRange: ['a1:a3 =B{row}'],
+  zeroRow: ['A01:A3 =B{row}'],
+  threeParts: ['A1:A3:Z9 =B{row}'],
+  spaces: ['A1:A3   =B{row}'],
+  tab: ['A1:A3\t=B{row}'],
+  leadingSpace: [' A1:A3 =B{row}'],
+  rowZero: ['A1:A3 =$A$0+B{row}'],
+  pastRows: ['A16777215:A16777217 =1', 'B1:B2 =2'],
+};
+const nameCases: Record<string, string[]> = {
+  farName: ['A1:A3 =Rate1*B{row}'],
+  farRange: ['A1:A3 =Rate1:A{row}'],
+  farMovedOnto: [`A1:B2 ={col+${RATD}}{row}*2`],
+  scopedName: ['A1:A2 =YTD2024+B{row}'],
+};
+const names3 = { Rate1: 'S!$Z$1', 'Data!YTD2024': 'S!$Z$2' };
+function readCases(cases: Record<string, string[]>, names?: Record<string, string>) {
+  const out: Record<string, unknown>[] = [];
+  for (const [name, fills] of Object.entries(cases)) {
+    let leftOut = 0;
+    sc.readFillLines(fills, () => leftOut++);
+    const rows = name === 'overlap' ? { '1': 'kept' } : undefined;
+    const doc = { spredin: 2, active: 0, sheets: [{ name: 'Update Spredin' }], compactSheets: [{ name, fills, ...(rows ? { rows } : {}) }], ...(names ? { names } : {}) };
+    const got = wb.parseSpredinText(JSON.stringify(doc));
+    out.push({ name, fills, ...(rows ? { rows } : {}), ...(names ? { names } : {}), leftOut, cells: cellsOf(got.sheets[0]) });
+  }
+  return out;
+}
+rules.fills = readCases(fillCases);
+ed.noteDefinedNames(Object.keys(names3).map((k) => k.slice(k.lastIndexOf('!') + 1)));
+rules.fills = [...(rules.fills as unknown[]), ...readCases(nameCases, names3)];
+// What each case shows, so a wrong expectation is caught here, not believed.
+const fillsRead = Object.fromEntries((rules.fills as { name: string; cells: Record<string, string> }[]).map((c) => [c.name, c.cells]));
+const must: [string, string, string | undefined][] = [
+  ['quoted', 'A1', undefined], ['absolute', 'A2', undefined], ['oneColumn', 'B2', undefined], ['written', 'A1', undefined],
+  ['lowercase', 'A1', '=b1+$c$01'], ['lowercase', 'A2', '=B2+$C$1'], ['colsReversed', 'B1', '=SUM($B:C)'],
+  ['rowsReversed', 'A4', '=ROWS($3:5)'], ['curly', 'A1', undefined], ['curlyCloses', 'A2', '="x\u201c&B2'],
+  ['pastZZZZ', 'B2', '=AAAAA1'], ['rowZero', 'A2', '=#REF!+B2'], ['farName', 'A2', '=Rate1*B2'],
+  ['farMovedOnto', 'B2', '=RATE1*2'], ['farRange', 'A1', undefined], ['wideWord', 'A1', undefined],
+];
+for (const [c, at, want] of must)
+  if (fillsRead[c]?.[at] !== want) throw new Error(`rules: ${c}!${at} is ${JSON.stringify(fillsRead[c]?.[at])}, expected ${JSON.stringify(want)}`);
+
+// The four bounds on a sheet's fill lines, at small sizes: which lines the
+// app keeps, and the first formula of each column it keeps.
+const limitCases: { why: string; limits: Record<string, number>; lines: string[] }[] = [
+  { why: 'cells', limits: { cells: 5, columns: 100, text: 1e9, moves: 100 }, lines: ['A1:A3 =B{row}', 'B1:B3 =C{row}', 'C1:C2 =D{row}'] },
+  { why: 'a line the template check refuses names no columns', limits: { cells: 1000, columns: 2, text: 1e9, moves: 100 }, lines: ['A1:A1 =1', 'B1:B1 x', 'C1:C1 =3'] },
+  { why: 'a line refused for covering a cell names its columns', limits: { cells: 1000, columns: 3, text: 1e9, moves: 100 }, lines: ['A1:A1 =1', 'A1:A1 =2', 'B1:B1 =3', 'C1:C1 =4'] },
+  { why: 'text', limits: { cells: 1000, columns: 100, text: 20, moves: 100 }, lines: ['A1:A2 =B{row}', 'B1:B1 =12345', 'C1:C1 =1'] },
+  { why: 'text in UTF-16 units', limits: { cells: 1000, columns: 100, text: 4, moves: 100 }, lines: ['A1:A1 ="\u{1F600}"', 'B1:B1 ="a"'] },
+  { why: 'moves', limits: { cells: 1000, columns: 100, text: 1e9, moves: 1 }, lines: ['A5:A5 =1', 'A3:A3 =2', 'A1:A1 =3', 'A9:A9 =4'] },
+  { why: 'a block', limits: { cells: 1000, columns: 3, text: 1e9, moves: 100 }, lines: ['B2:C3 ={col-1}{row}', 'D1:E1 =1', 'D2:D2 =2'] },
+];
+rules.limits = limitCases.map((lc) => {
+  let leftOut = 0;
+  const kept = sc.readFillLines(lc.lines, () => leftOut++, lc.limits).map((f: { c: number; r0: number; r1: number; master: string }) => [f.c, f.r0, f.r1, f.master]);
+  return { ...lc, leftOut, kept };
+});
+
 writeFileSync(join(FIX, 'rules.json'), JSON.stringify(rules, null, 1) + '\n');
-console.log(`rules: ${(rules.dual as unknown[]).length} dual-form files read by the app`);
+console.log(
+  `rules: ${(rules.dual as unknown[]).length} dual-form files, ${(rules.fills as unknown[]).length} fill-line sheets, ` +
+    `${(rules.limits as unknown[]).length} limit cases read by the app`,
+);

@@ -35,8 +35,13 @@ import tempfile
 MAX_FILE_BYTES = 2 * 1024 ** 3     # a .sprd (or a spec) on disk
 MAX_TEXT_BYTES = 2 * 1024 ** 3     # its JSON text, unzipped (the app's own ceiling: 2^31 characters)
 MAX_JSON_ITEMS = 50_000_000        # JSON values and keys outside cell text (under 90 bytes each, parsed)
-MAX_FILL_CELLS = 20_000_000        # a sheet's fill lines together: the app's own bound (sprdCompact.ts)
-MAX_FILL_WORK = 20_000_000         # steps spent sorting out how a sheet's fill lines lie
+# A sheet's fill lines together, the app's own bounds (sprdCompact.ts FILL_LIMITS);
+# a line that would pass one is left out, as the app leaves it out:
+MAX_FILL_CELLS = 20_000_000        #   their cells
+MAX_FILL_COLUMNS = 6_666_666       #   the columns of their lines (each column a writer writes holds 3 cells or more)
+MAX_FILL_LINE_TEXT = 2 ** 31 - 1   #   each line's cells times its template's length (in UTF-16 units, as the app counts)
+MAX_FILL_MOVES = 2 ** 31           #   ranges moved aside to keep each column's ranges in row order
+MAX_FILL_WORK = 20_000_000         # steps spent walking a sheet's fill lines row by row
 MAX_ROW_FIELDS = 1_048_576         # cells in one row line: 2^20, the most columns the app's cell table holds
 MAX_FIELD_CHARS = 64 * 1024 * 1024 # characters in one cell
 MAX_LIST_CELLS = 50_000_000        # cells `read` lists (cells and json formats), and sheet_cells() builds
@@ -293,13 +298,22 @@ def sheet_name(sf):
 
 
 # --- fill templates --------------------------------------------------------------
+# A fill line is "RANGE TEMPLATE". The app keeps a line only if its template is
+# exactly what its own writer would write for the formula the template reads at
+# the first cell (fillTemplate.ts checkTemplate), and then every other cell holds
+# that formula MOVED as the fill handle moves it (editops.ts shiftFormulaRefs,
+# compileShift). Both rest on the app's one scanner of references (editops.ts
+# scanRefs), ported below. Numbers the app's JavaScript might not hold exactly
+# (a row or an offset of 2^52 or more) are not guessed at: such a line is left out.
 
 _TOKEN = re.compile(r"\{\{|\}\}|\{(row|col)(?:([+-])([0-9]+))?\}|[{}]|[^{}]+")
+_BIG = 2 ** 52  # a row this large, or an offset near it: the line is left out (see above)
 
 
 def _compile(template):
     """A fill line's template as parts: text, or ('row'|'col', offset). None
-    when it cannot be read ({rows}, a lone brace, an offset past 9 digits)."""
+    when it cannot be read ({rows}, a lone brace, an offset of 2^52 less a
+    sheet's rows or more)."""
     parts = []
     for m in _TOKEN.finditer(template):
         tok = m.group(0)
@@ -311,7 +325,7 @@ def _compile(template):
             k = 0
             if m.group(2):
                 digits = m.group(3).lstrip("0") or "0"
-                if len(digits) > 9:
+                if len(digits) > 16 or int(digits) >= _BIG - 2 ** 25:
                     return None
                 k = int(digits) * (-1 if m.group(2) == "-" else 1)
             parts.append((m.group(1), k))
@@ -340,27 +354,493 @@ def _render(parts, r, c):
 
 def template_at(template, r, c):
     """The formula a fill line's template reads at row r, column c (0-based),
-    as the app reads it: {row} is the row number, {col} the column letters,
-    {row-1} the row above, {{ and }} are braces. None when it cannot be read."""
+    as the app's templateAt reads it: {row} is the row number, {col} the
+    column letters, {row-1} the row above, {{ and }} are braces. None when it
+    cannot be read. A kept line's first cell holds this; the others hold it
+    moved (_Fill.text), which differs only in how references are spelled."""
     parts = _compile(template)
     return None if parts is None else _render(parts, r, c)
 
 
-class _Fill:
-    """A kept fill line: its rectangle, its compiled template, and the length
-    of its longest formula (the last cell's: row numbers and letters only grow)."""
-    __slots__ = ("r0", "c0", "r1", "c1", "parts", "longest", "_col", "_text")
+# -- references in a formula: the app's scanner (editops.ts scanRefs) --
 
-    def __init__(self, r0, c0, r1, c1, parts):
-        self.r0, self.c0, self.r1, self.c1, self.parts = r0, c0, r1, c1, parts
-        self.longest = len(_render(parts, r1, c1))
-        self._col = None
+_R_CELL = re.compile(r"(\$?)([A-Za-z]{1,4})(\$?)([0-9]+)")
+_R_COLS = re.compile(r"(\$?)([A-Za-z]{1,4}):(\$?)([A-Za-z]{1,4})")
+_R_ROWS = re.compile(r"(\$?)([0-9]+):(\$?)([0-9]+)")
+_R_ANY_CELL = re.compile(r"(\$?)([A-Za-z]+)(\$?)([0-9]+)")
+_R_ROW_SPAN = re.compile(r"(\$?)([0-9]+):(\$?)([0-9]+)")
+_R_COL_SPAN = re.compile(r"(\$?)([A-Za-z]+):(\$?)([A-Za-z]+)")
+_STR_QUOTES = '"\u201c\u201d'  # a string literal: straight or curly quotes, either closing it
+
+
+class _Unsure(Exception):
+    """A row number the app's JavaScript might not hold exactly."""
+
+
+def _ident(ch):
+    return ch != "" and ch.isascii() and (ch.isalnum() or ch in "_.")
+
+
+def _letter(ch):
+    return ("A" <= ch <= "Z") or ("a" <= ch <= "z")
+
+
+def _row_of(digits):
+    """A row as written (`007`), 0-based. Raises _Unsure past 2^52."""
+    t = digits.lstrip("0")
+    if len(t) > 16 or int(t or "0") >= _BIG:
+        raise _Unsure
+    return int(t or "0") - 1
+
+
+def _end_of(m):
+    """One end of a cell reference: (column absolute, column, row absolute, row)."""
+    return (m.group(1) == "$", col_index(m.group(2)), m.group(3) == "$", _row_of(m.group(4)))
+
+
+def _word_end(s, i, wide):
+    """Where a sheet name's word starting at i ends ([A-Za-z_][A-Za-z0-9_.]*,
+    or, in a formula with any character past ASCII, letters and digits of any
+    script, as the app's \\p{L} and \\p{N}), or -1."""
+    n = len(s)
+    if i >= n:
+        return -1
+    ch = s[i]
+    if not (ch == "_" or _letter(ch) or (wide and ch.isalpha())):
+        return -1
+    j = i + 1
+    while j < n:
+        ch = s[j]
+        if ch in "_." or (ch.isascii() and ch.isalnum()) or (wide and (ch.isalpha() or ch.isnumeric())):
+            j += 1
+        else:
+            break
+    return j
+
+
+def _scan_refs(s, far=()):
+    """Every reference in formula s, left to right, as (where, length, ref):
+    ('cells', end, end or None), ('cols', $, col, $, col) or ('rows', $, row,
+    $, row). Text in quotes, function names, sheet and table names spelled
+    like cells, and a defined name in `far` spelled like a cell (`Rate1`)
+    are not references. Raises _Unsure for a row past 2^52."""
+    out = []
+    if not s.startswith("="):
+        return out
+    n = len(s)
+    wide = not s.isascii()
+
+    def take(i, qualified):
+        """The length taken at i: a reference (noted), or a function name or
+        a longer word spelled like one (not noted); 0 for nothing."""
+        m = _R_CELL.match(s, i)
+        if m:
+            end = m.end()
+            after = s[end:end + 1]
+            if after == "(" or _ident(after):
+                return end - i
+            if far and qualified is None and after != ":" and m.group(0).lower() in far:
+                return end - i
+            a, b = _end_of(m), None
+            if after == ":":
+                m2 = _R_CELL.match(s, end + 1)
+                if m2:
+                    after2 = s[m2.end():m2.end() + 1]
+                    if after2 != "(" and not _ident(after2):
+                        b, end = _end_of(m2), m2.end()
+            out.append((i, end - i, ("cells", a, b)))
+            return end - i
+        m = _R_COLS.match(s, i)
+        if m:
+            if s[m.end():m.end() + 1] == "(" or _ident(s[m.end():m.end() + 1]):
+                return 0
+            out.append((i, m.end() - i, ("cols", m.group(1), col_index(m.group(2)), m.group(3), col_index(m.group(4)))))
+            return m.end() - i
+        m = _R_ROWS.match(s, i)
+        if m:
+            if _ident(s[m.end():m.end() + 1]):
+                return 0
+            out.append((i, m.end() - i, ("rows", m.group(1), _row_of(m.group(2)), m.group(3), _row_of(m.group(4)))))
+            return m.end() - i
+        return 0
+
+    i = 0
+    while i < n:
+        ch = s[i]
+        if ch in _STR_QUOTES:  # a string literal, copied as it is
+            i += 1
+            while i < n:
+                closes = s[i] in _STR_QUOTES
+                i += 1
+                if closes:
+                    break
+            continue
+        prev = s[i - 1] if i else ""
+        if ch == "[" and _ident(prev):  # a table's columns: T[Q1], T[[#This Row],[A1]]
+            depth = 0
+            while i < n:
+                if s[i] == "[":
+                    depth += 1
+                elif s[i] == "]":
+                    depth -= 1
+                    if depth == 0:
+                        i += 1
+                        break
+                i += 1
+            continue
+        if _ident(prev) or prev == "$" or prev == "!" or (wide and prev > "\x7f"):
+            i += 1  # not at the start of a word
+            continue
+        if ch == "'":  # 'My Sheet'!A1, with '' for a quote
+            j, closed = i + 1, False
+            while j < n:
+                if s[j] == "'":
+                    if s[j + 1:j + 2] == "'":
+                        j += 2
+                        continue
+                    closed = True
+                    j += 1
+                    break
+                j += 1
+            if closed and s[j:j + 1] == "!":
+                i = j + 1
+                i += take(i, "")
+                continue
+            i += 1
+            continue
+        if _letter(ch) or ch == "_" or (wide and ch > "\x7f"):
+            # Sheet1!A1, Jan:Dec!B5: the names are sheets, whatever they look like.
+            e = _word_end(s, i, wide)
+            if e > 0:
+                if s[e:e + 1] == ":":
+                    e2 = _word_end(s, e + 1, wide)
+                    if e2 > 0 and s[e2:e2 + 1] == "!":
+                        i = e2 + 1
+                        i += take(i, "")
+                        continue
+                if s[e:e + 1] == "!":
+                    i = e + 1
+                    i += take(i, "")
+                    continue
+        if _letter(ch) or "0" <= ch <= "9" or ch == "$":
+            got = take(i, None)
+            if got:
+                i += got
+                continue
+        i += 1
+    return out
+
+
+def _ph(name, k):
+    return "{%s}" % name if k == 0 else "{%s+%d}" % (name, k) if k > 0 else "{%s%d}" % (name, k)
+
+
+def _fill_template(first, r0, c0, across, far):
+    """The template the app's writer writes for formula `first` at (r0, c0)
+    (fillTemplate.ts fillTemplate): every relative row of a reference as
+    {row+k}, with `across` every relative column as {col+k}; braces doubled."""
+    out, last = [], 0
+    for at, length, ref in _scan_refs(first, far):
+        out.append(first[last:at].replace("{", "{{").replace("}", "}}"))
+        text = first[at:at + length]
+        if ref[0] == "cells":
+            ends = [e for e in ref[1:] if e is not None]
+            pieces, pos = [], 0
+            for k, m in enumerate(_R_ANY_CELL.finditer(text)):
+                pieces.append(text[pos:m.start()])
+                if k < len(ends):
+                    col_abs, col, row_abs, row = ends[k]
+                    pieces.append(m.group(1) + (_ph("col", col - c0) if across and not col_abs else m.group(2))
+                                  + m.group(3) + (m.group(4) if row_abs else _ph("row", row - r0)))
+                else:
+                    pieces.append(m.group(0))
+                pos = m.end()
+            pieces.append(text[pos:])
+            out.append("".join(pieces))
+        elif ref[0] == "rows":
+            m = _R_ROW_SPAN.fullmatch(text)
+            out.append(m.group(1) + (m.group(2) if m.group(1) else _ph("row", ref[2] - r0)) + ":"
+                       + m.group(3) + (m.group(4) if m.group(3) else _ph("row", ref[4] - r0)))
+        elif across:
+            m = _R_COL_SPAN.fullmatch(text)
+            out.append(m.group(1) + (m.group(2) if m.group(1) else _ph("col", ref[2] - c0)) + ":"
+                       + m.group(3) + (m.group(4) if m.group(3) else _ph("col", ref[4] - c0)))
+        else:
+            out.append(text)
+        last = at + length
+    out.append(first[last:].replace("{", "{{").replace("}", "}}"))
+    return "".join(out)
+
+
+_NORM_ZERO = re.compile(r"\{(row|col)[+-]0+\}")
+_NORM_LEAD = re.compile(r"\{(row|col)([+-])0*([0-9]+)\}")
+
+
+def check_template(template, r0, c0, c1, far=()):
+    """The first cell's formula of a line over rows from r0, columns c0..c1,
+    or None when the app leaves the line out (fillTemplate.ts checkTemplate):
+    the template cannot be read, its first cell is not a formula, or its
+    placeholders are not exactly the relative parts of its references (a
+    {row} inside text in quotes, one standing for an absolute part, a {col}
+    in a line one column wide, a relative reference written out). `far`: the
+    workbook's defined names spelled like a cell (far_names)."""
+    first = template_at(template, r0, c0)
+    if first is None or not first.startswith("="):
+        return None
+    # {row+0} and {row} are one placeholder, {row+007} and {row+7} too.
+    normal = _NORM_LEAD.sub(r"{\1\2\3}", _NORM_ZERO.sub(r"{\1}", template))
+    try:
+        return first if _fill_template(first, r0, c0, c1 > c0, far) == normal else None
+    except _Unsure:
+        return None
+
+
+_FAR_SHAPED = re.compile(r"(?:[A-Za-z]{4}|[X-Zx-z][A-Za-z]{2})[0-9]+")
+
+
+def far_names(doc):
+    """The workbook's defined names spelled like a cell past column XFD
+    (`Rate1`, `YTD2024`), in lower case: the app reads such a word as the
+    name, not as a cell (editops.ts noteDefinedNames). The app also remembers
+    names of workbooks it opened before; sprd.py knows only this file's."""
+    names = doc.get("names")
+    out = set()
+    if isinstance(names, dict):
+        for key in names:
+            at = key.rfind("!")
+            name = key[at + 1:] if 0 < at < len(key) - 1 else key  # Sheet!name
+            if _FAR_SHAPED.fullmatch(name) and col_index(name.rstrip("0123456789")) > 16383:
+                out.add(name.lower())
+    return frozenset(out)
+
+
+# -- a kept line's cells --
+
+def _pieces_of(s, far):
+    """Formula s as its text between references, and its references, each with
+    the text it is written with last."""
+    pieces, last = [], 0
+    for at, length, ref in _scan_refs(s, far):
+        if at > last:
+            pieces.append(s[last:at])
+        pieces.append(ref + (s[at:at + length],))
+        last = at + length
+    if last < len(s):
+        pieces.append(s[last:])
+    return pieces
+
+
+def _span(a0, n0, a1, n1, name):
+    """Both ends of `B:D` or `5:7` as text, the lower one first (editops.ts)."""
+    if n0 < 0 or n1 < 0:
+        return "#REF!"
+    return f"{a0}{name(n0)}:{a1}{name(n1)}" if n0 <= n1 else f"{a1}{name(n1)}:{a0}{name(n0)}"
+
+
+def _row_name(n):
+    return str(n + 1)
+
+
+def _column_parts(pieces, dc):
+    """A formula moved dc columns right, as parts for moving it down too: text;
+    an int, a relative row's number before the move down; or a rows reference,
+    (written, $, row, $, row). As the app moves it: a cell reference is written
+    again ($ kept, letters in capitals, no leading zeros), `B:D` only when it
+    moves, a reference off the sheet as #REF!."""
+    parts = []
+
+    def put(t):
+        if parts and type(parts[-1]) is str:
+            parts[-1] += t
+        else:
+            parts.append(t)
+
+    for p in pieces:
+        if type(p) is str:
+            put(p)
+        elif p[0] == "cells":
+            ends = (p[1],) if p[2] is None else (p[1], p[2])
+            if any(row_abs and row < 0 for _, _, row_abs, row in ends):
+                put("#REF!")
+                continue
+            for k, (col_abs, col, row_abs, row) in enumerate(ends):
+                put((":" if k else "") + ("$" if col_abs else "") + col_name(col if col_abs else col + dc) + ("$" if row_abs else ""))
+                if row_abs:
+                    put(str(row + 1))
+                else:
+                    parts.append(row + 1)
+        elif p[0] == "cols":
+            _, a0, n0, a1, n1, written = p
+            put(written if dc == 0 else _span(a0, n0 if a0 else n0 + dc, a1, n1 if a1 else n1 + dc, col_name))
+        else:
+            parts.append((p[5],) + p[1:5])
+    return parts
+
+
+def _join(parts, dr):
+    out = []
+    for p in parts:
+        t = type(p)
+        if t is str:
+            out.append(p)
+        elif t is int:
+            out.append(str(p + dr))
+        else:  # a rows reference, written as it is in the line's first row
+            written, a0, n0, a1, n1 = p
+            out.append(written if dr == 0 else _span(a0, n0 if a0 else n0 + dr, a1, n1 if a1 else n1 + dr, _row_name))
+    return "".join(out)
+
+
+def _moves_away(pieces, width, far):
+    """Could moving the formula across the line spell a reference the app's
+    scanner then reads otherwise (past column ZZZZ, or a defined name like
+    `Rate1`)? Then each column is moved, then read again, as the app does."""
+    for p in pieces:
+        if type(p) is str:
+            continue
+        if p[0] == "cells":
+            for e in p[1:3]:
+                if e is not None and not e[0] and (far or e[1] + width > MAX_COL):
+                    return True
+        elif p[0] == "cols" and ((not p[1] and p[2] + width > MAX_COL) or (not p[3] and p[4] + width > MAX_COL)):
+            return True
+    return False
+
+
+class _Fill:
+    """A kept fill line: its rectangle, the formula of its first cell, and the
+    length of its longest formula. Every other cell holds that formula moved
+    as the app moves it: across to the cell's column, then down to its row."""
+    __slots__ = ("r0", "c0", "r1", "c1", "first", "far", "pieces", "reread", "longest", "_cache")
+
+    def __init__(self, r0, c0, r1, c1, first, far=()):
+        self.r0, self.c0, self.r1, self.c1, self.first, self.far = r0, c0, r1, c1, first, far
+        self.pieces = _pieces_of(first, far)
+        self.reread = c1 > c0 and _moves_away(self.pieces, c1 - c0, far)
+        self._cache = None
+        # Row numbers and letters only grow, and leading zeros go after the
+        # first cell, so the longest is the first, or the last column's in the
+        # first or last row (written as if no reference were read otherwise:
+        # never shorter than what is written).
+        last = _column_parts(self.pieces, c1 - c0)
+        self.longest = max(len(first), len(_join(last, 0)), len(_join(last, r1 - r0)))
+
+    def _column(self, dc):
+        cache = self._cache
+        if cache is None:
+            cache = self._cache = {}
+        got = cache.get(dc)
+        if got is None:
+            if len(cache) >= 1024:
+                cache.clear()
+            if not self.reread:
+                got = _column_parts(self.pieces, dc)
+            else:  # moved across, then read again, as the app does (readFillLines, then applyFills)
+                master = self.first if dc == 0 else _join(_column_parts(self.pieces, dc), 0)
+                got = (master, _column_parts(_pieces_of(master, self.far), 0))
+            cache[dc] = got
+        return got
 
     def text(self, r, c):
-        if self._col != c:  # the column's letters once, then only the rows change
-            self._col = c
-            self._text = [col_name(c + p[1]) if isinstance(p, tuple) and p[0] == "col" else p for p in self.parts]
-        return "".join(p if isinstance(p, str) else str(r + p[1] + 1) for p in self._text)
+        dr, dc = r - self.r0, c - self.c0
+        if dr == 0 and dc == 0:
+            return self.first
+        got = self._column(dc)
+        if not self.reread:
+            return _join(got, dr)
+        return got[0] if dr == 0 else _join(got[1], dr)
+
+
+def _starting_by(t, r):
+    """In a column's ranges [r0, r1, r0, r1, ...], in row order and apart: how
+    many start at or above row r."""
+    lo, hi = 0, len(t) >> 1
+    while lo < hi:
+        m = (lo + hi) >> 1
+        if t[2 * m] <= r:
+            lo = m + 1
+        else:
+            hi = m
+    return lo
+
+
+class _Budget:
+    """What a sheet's fill lines have cost so far, counted as the app counts it
+    (sprdCompact.ts FillBudget), so a line is left out exactly where the app
+    leaves it out."""
+
+    def __init__(self):
+        self.cells = self.columns = self.text = self.moves = 0
+        self.taken = {}  # column -> [r0, r1, r0, r1, ...] of the lines kept
+
+    def fits(self, size, width, length):
+        """Weighed before any column of the line is looked at."""
+        return (self.cells + size <= MAX_FILL_CELLS and self.columns + width <= MAX_FILL_COLUMNS
+                and self.text + size * length <= MAX_FILL_LINE_TEXT)
+
+    def take(self, r0, r1, c0, c1, length):
+        """Keep the line, or False when it covers a cell a line before it took
+        or would move too many ranges. Its columns count either way."""
+        width = c1 - c0 + 1
+        self.columns += width
+        taken = self.taken
+        moves = 0
+        # The same answer from whichever is fewer: the line's columns, or the columns taken.
+        for c in (range(c0, c1 + 1) if width <= len(taken) else [k for k in taken if c0 <= k <= c1]):
+            t = taken.get(c)
+            if t is None:
+                continue
+            i = _starting_by(t, r1)
+            if i > 0 and t[2 * i - 1] >= r0:
+                return False
+            moves += (len(t) >> 1) - i
+        if self.moves + moves > MAX_FILL_MOVES:
+            return False
+        self.moves += moves
+        for c in range(c0, c1 + 1):
+            t = taken.get(c)
+            if t is None:
+                taken[c] = [r0, r1]
+            else:
+                i = _starting_by(t, r1)
+                t[2 * i:2 * i] = (r0, r1)
+        size = (r1 - r0 + 1) * width
+        self.cells += size
+        self.text += size * length
+        return True
+
+
+_JS_SPACE = "\t\n\x0b\x0c\r \xa0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u2028\u2029\u202f\u205f\u3000\ufeff"
+_A1 = re.compile(r"\$?([A-Za-z]+)\$?([0-9]+)")
+
+
+def _fill_cell(text):
+    """One end of a fill line's range as the app reads it (coords.ts parseA1):
+    $ allowed, letters in any case, leading zeros; (row, column) or None. A
+    column or row past every bound is given as one past the bound."""
+    m = _A1.fullmatch(text.strip(_JS_SPACE))
+    if not m:
+        return None
+    letters, digits = m.group(1), m.group(2).lstrip("0")
+    c = col_index(letters) if len(letters) <= 5 else MAX_COL + 1
+    r = int(digits or "0") - 1 if len(digits) <= 9 else MAX_ROW + 1
+    return None if r < 0 else (r, c)
+
+
+def _fill_range(text):
+    """A fill line's range as the app reads it (coords.ts parseRangeLabel):
+    (r0, c0, r1, c1) or None."""
+    parts = text.split(":")
+    a = _fill_cell(parts[0])
+    b = _fill_cell(parts[1]) if a is not None and len(parts) > 1 else a
+    if b is None:
+        return None
+    return min(a[0], b[0]), min(a[1], b[1]), max(a[0], b[0]), max(a[1], b[1])
+
+
+def _js_length(text):
+    """The length JavaScript gives a text: UTF-16 units."""
+    return len(text) if text.isascii() else len(text.encode("utf-16-le", "surrogatepass")) // 2
 
 
 # --- one sheet ----------------------------------------------------------------------
@@ -378,22 +858,46 @@ def _row_width_ok(line):
     return n <= MAX_ROW_FIELDS
 
 
+def _read_fill_line(line, budget, far):
+    """One fill line, read and checked in the app's order (readFillLines): its
+    range, the budget, its template, then whether it covers a cell taken. The
+    kept line, or None."""
+    sp = line.find(" ")
+    rng = _fill_range(line[:sp]) if sp > 0 else None
+    if rng is None or rng[2] > MAX_ROW or rng[3] > MAX_COL:
+        return None
+    r0, c0, r1, c1 = rng
+    template = line[sp + 1:].lstrip(" ")
+    width = c1 - c0 + 1
+    length = _js_length(template)
+    if not budget.fits((r1 - r0 + 1) * width, width, length):
+        return None
+    first = check_template(template, r0, c0, c1, far)
+    if first is None or not budget.take(r0, r1, c0, c1, length):
+        return None
+    return _Fill(r0, c0, r1, c1, first, far)
+
+
 class Sheet:
     """One sheet as sprd.py reads it, without building its cells: the fill
     lines the app keeps, as rectangles, and the row lines, as text. Fill lines
-    are kept or left out as the app keeps them: a line past its bounds, whose
-    first cell is not a formula, that covers a cell an earlier line covers, or
-    that takes the sheet's fill lines past MAX_FILL_CELLS is left out, and
-    `notes` says so. The rows win over the fills where both give a cell.
+    are kept or left out as the app keeps them (sprdCompact.ts readFillLines):
+    a line that cannot be read, is past the sheet's bounds, is not written as
+    the app writes a fill (check_template), covers a cell an earlier line
+    covers, or would take the sheet's lines past one of the app's limits
+    (MAX_FILL_CELLS and the three after it) is left out, and `notes` says so.
+    The rows win over the fills where both give a cell.
 
     `complete`: the rows hold every cell (a file in the dual form, see
     rows_hold_every_cell), so the fill lines add none. They are still read,
-    so a line the app would leave out is noted as it is in the app."""
+    so a line the app would leave out is noted as it is in the app.
+    `far`: the workbook's names spelled like a cell (far_names)."""
 
-    def __init__(self, sf, complete=False):
+    def __init__(self, sf, complete=False, far=()):
         self.name = sheet_name(sf)
         self.notes = []
         self.fills = []
+        self.left_out = 0   # fill lines left out
         self.rows = {}      # row -> its CSV line, or {col: text} from the old cell map
         self.work = 0
         legacy = sf.get("cells")
@@ -408,7 +912,7 @@ class Sheet:
             if bad:
                 self.notes.append(f"{bad} cell(s) of the old cell map could not be read")
             return
-        self._keep_fills(sf.get("fills"))
+        self._keep_fills(sf.get("fills"), far)
         if complete:
             self.fills = []  # in this form the rows hold every cell: a fill line adds none
         rows = sf.get("rows")
@@ -431,60 +935,23 @@ class Sheet:
         if self.work > MAX_FILL_WORK:
             raise SprdError(f"sheet '{_shown(self.name, 40)}': its fill lines lie in too many pieces to sort out")
 
-    def _keep_fills(self, lines):
-        if not lines:
+    def _keep_fills(self, lines, far):
+        if lines is None:
             return
         if not isinstance(lines, list):
             self.notes.append("the fill lines could not be read")
             return
-        left_out = 0
-        total = 0
-        narrow = {}   # column -> [(r0, r1)] of kept lines up to 64 columns wide
-        wide = []     # kept lines wider than that
+        budget = _Budget()
         for line in lines:
-            if not isinstance(line, str) or " " not in line:
-                left_out += 1
-                continue
-            rng, template = line.split(" ", 1)
-            try:
-                r0, c0, r1, c1 = parse_range(rng)
-            except SprdError:
-                left_out += 1
-                continue
-            parts = _compile(template.lstrip(" "))
-            first = _render(parts, r0, c0) if parts is not None else None
-            size = (r1 - r0 + 1) * (c1 - c0 + 1)
-            if r1 > MAX_ROW or c1 > MAX_COL or first is None or not first.startswith("=") or total + size > MAX_FILL_CELLS:
-                left_out += 1
-                continue
-            # Does it cover a cell an earlier kept line covers? (by rectangle, so
-            # a read of a part decides it exactly as a read of the whole does)
-            self._spend(len(wide))
-            clash = any(f.r0 <= r1 and f.r1 >= r0 and f.c0 <= c1 and f.c1 >= c0 for f in wide)
-            if not clash:
-                span = c1 - c0 + 1
-                cols = range(c0, c1 + 1) if span <= len(narrow) else [k for k in narrow if c0 <= k <= c1]
-                self._spend(min(span, len(narrow)))
-                for k in cols:
-                    spans = narrow.get(k, ())
-                    self._spend(len(spans))
-                    if any(a <= r1 and b >= r0 for a, b in spans):
-                        clash = True
-                        break
-            if clash:
-                left_out += 1
-                continue
-            total += size
-            f = _Fill(r0, c0, r1, c1, parts)
-            self.fills.append(f)
-            if c1 - c0 + 1 > 64:
-                wide.append(f)
+            f = _read_fill_line(line, budget, far) if isinstance(line, str) else None
+            if f is None:
+                self.left_out += 1
             else:
-                for k in range(c0, c1 + 1):
-                    narrow.setdefault(k, []).append((r0, r1))
-        if left_out:
-            self.notes.append(f"{left_out} fill line(s) left out, as Spredin leaves them out (unreadable, past its bounds, "
-                              f"not a formula, covering cells an earlier line covers, or past {MAX_FILL_CELLS:,} fill cells)")
+                self.fills.append(f)
+        if self.left_out:
+            self.notes.append(f"{self.left_out} fill line(s) left out, as Spredin leaves them out (unreadable, past its bounds, "
+                              "not written as Spredin writes a fill, covering cells an earlier line covers, "
+                              "or past the sheet's limits for fill lines)")
 
     # -- rows in order ----------------------------------------------------------------
 
@@ -678,12 +1145,13 @@ class _Active:
         return self._order
 
 
-def sheet_cells(sf, box=None, complete=False):
+def sheet_cells(sf, box=None, complete=False, far=()):
     """{(r, c): text} for one sheet: the fill lines first, then the rows, which
     win where they write a cell (the app's rule); with `complete` (a file not
-    in the compact form: rows_hold_every_cell), the rows alone. Empty cells
-    are left out. Refuses a sheet of more than MAX_LIST_CELLS cells."""
-    sheet = Sheet(sf, complete)
+    in the compact form: rows_hold_every_cell), the rows alone. `far`: the
+    workbook's far_names. Empty cells are left out. Refuses a sheet of more
+    than MAX_LIST_CELLS cells."""
+    sheet = Sheet(sf, complete, far)
     n = sheet.stats(box)["cells"]
     if n > MAX_LIST_CELLS:
         raise SprdError(f"sheet '{_shown(sheet.name, 40)}' holds {n:,} cells, more than {MAX_LIST_CELLS:,}")
@@ -710,9 +1178,10 @@ def cmd_info(args):
     version = version if isinstance(version, int) and not isinstance(version, bool) and 0 <= version < 10 ** 6 else "?"
     form = form_of(doc)
     complete = rows_hold_every_cell(doc)
+    far = far_names(doc)
     out = [f"form: {form} (file version {version})" + (": the rows hold every cell, and the fill lines add none" if form == "dual" else "")]
     for i, sf in enumerate(sheet_files(doc), 1):
-        sheet = Sheet(sf, complete)
+        sheet = Sheet(sf, complete, far)
         s = sheet.stats()
         extent = " " + label(0, 0) + ":" + label(s["last_row"], s["last_col"]) if s["cells"] else ""
         parts = [f"{s['cells']} cells", f"{s['formulas']} formulas"]
@@ -750,8 +1219,8 @@ def cmd_read(args):
     if args.max < 0:
         raise SprdError("--max is a number of cells, 0 for all")
     doc = load(args.file)
-    complete = rows_hold_every_cell(doc)
-    chosen = [Sheet(sf, complete) for sf in pick_sheet(doc, args.sheet)]
+    complete, far = rows_hold_every_cell(doc), far_names(doc)
+    chosen = [Sheet(sf, complete, far) for sf in pick_sheet(doc, args.sheet)]
     box = parse_range(args.range) if args.range else None
     # Measure what will be written before writing any of it.
     listed = printed = fill_text = 0

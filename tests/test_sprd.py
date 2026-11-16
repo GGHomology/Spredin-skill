@@ -98,6 +98,67 @@ class TheDualForm(unittest.TestCase):
             self.assertEqual(json.loads(out), {"S": {"A1": "1", "A2": "=A1+1"}})
 
 
+@contextlib.contextmanager
+def limits(**values):
+    """Lower sprd.py's limits for a test, then put them back."""
+    old = {k: getattr(sprd, k) for k in values}
+    for k, v in values.items():
+        setattr(sprd, k, v)
+    try:
+        yield
+    finally:
+        for k, v in old.items():
+            setattr(sprd, k, v)
+
+
+class FillLinesAsTheAppReadsThem(unittest.TestCase):
+    """Each case is a sheet of a compact file and what the APP reads from it
+    (tools/app-check.mts): which lines it keeps (its writer's template, and
+    nothing else) and the text of every cell (the first formula moved, as the
+    fill handle moves it, which spells references in capitals)."""
+
+    def test_every_case(self):
+        self.assertGreaterEqual(len(RULES["fills"]), 40)
+        for case in RULES["fills"]:
+            with self.subTest(case["name"]):
+                far = sprd.far_names({"names": case.get("names", {})})
+                sheet = sprd.Sheet({"name": case["name"], "fills": case["fills"], "rows": case.get("rows", {})}, far=far)
+                self.assertEqual(sheet.left_out, case["leftOut"], "lines left out")
+                self.assertEqual({sprd.label(r, c): t for r, c, t in sheet.cells()}, case["cells"])
+                self.assertEqual(sheet.stats()["cells"], len(case["cells"]))
+
+    def test_the_cases_the_audit_named(self):
+        check = sprd.check_template
+        self.assertIsNone(check('="Row {row}"', 0, 0, 0), "a placeholder inside quoted text")
+        self.assertIsNone(check("=$B${row}", 1, 0, 0), "a placeholder for an absolute part")
+        self.assertIsNone(check("={col}1*2", 1, 1, 1), "{col} in a line one column wide")
+        self.assertIsNone(check("x{row}", 0, 0, 0), "a first cell that is not a formula")
+        self.assertIsNone(check("=B5", 0, 0, 0), "a relative reference written out")
+        self.assertEqual(check("=C{row}*D{row}", 1, 4, 4), "=C2*D2")
+        self.assertEqual(check("={col-2}{row}*$D$1", 1, 4, 6), "=C2*$D$1")
+        self.assertIsNone(check("={col-2}{row}*D$1", 1, 4, 6), "D is a relative column: {col-1} in a block")
+
+    def test_a_number_the_app_may_not_hold_exactly_is_left_out(self):
+        # Past 2^52 a JavaScript number may round; sprd.py does not guess.
+        self.assertEqual(sprd.check_template("=A{row+1000000000000000}", 0, 0, 0), "=A1000000000000001")
+        self.assertIsNone(sprd.check_template("=A{row+10000000000000000}", 0, 0, 0))
+        self.assertIsNone(sprd.check_template("=$A$99999999999999999+B{row}", 0, 0, 0))
+
+    def test_the_four_limits_as_the_app_counts_them(self):
+        for case in RULES["limits"]:
+            lim = case["limits"]
+            with self.subTest(case["why"]), limits(MAX_FILL_CELLS=lim["cells"], MAX_FILL_COLUMNS=lim["columns"],
+                                                   MAX_FILL_LINE_TEXT=lim["text"], MAX_FILL_MOVES=lim["moves"]):
+                sheet = sprd.Sheet({"name": "S", "fills": case["lines"]})
+                kept = [[c, f.r0, f.r1, f.text(f.r0, c)] for f in sheet.fills for c in range(f.c0, f.c1 + 1)]
+                self.assertEqual(kept, case["kept"])
+                self.assertEqual(sheet.left_out, case["leftOut"])
+
+    def test_the_app_limits_are_the_apps(self):
+        self.assertEqual((sprd.MAX_FILL_CELLS, sprd.MAX_FILL_COLUMNS, sprd.MAX_FILL_LINE_TEXT, sprd.MAX_FILL_MOVES),
+                         (20_000_000, 20_000_000 // 3, 2 ** 31 - 1, 2 ** 31))
+
+
 class Templates(unittest.TestCase):
     def test_placeholders(self):
         t = sprd.template_at
@@ -146,7 +207,10 @@ class KeepsFillLinesAsTheAppDoes(unittest.TestCase):
 def reference(sf, box):
     """The cells as a plain model reads them: every kept fill line written out
     cell by cell (the app's keep rules, with a set of the cells taken), then the
-    rows over them, then the box."""
+    rows over them, then the box. Whether a template is one the app keeps is
+    check_template's (tested on its own against the app, AppRules); the
+    templates here are spelled as the app spells moved formulas, so reading
+    the template at each cell is what the app's moved formula is."""
     import csv as _csv
     cells, taken, total, fills = {}, set(), 0, {}
     for line in sf.get("fills", []):
@@ -155,9 +219,9 @@ def reference(sf, box):
             r0, c0, r1, c1 = sprd.parse_range(rng)
         except sprd.SprdError:
             continue
-        first = sprd.template_at(template.lstrip(" "), r0, c0)
+        first = sprd.check_template(template.lstrip(" "), r0, c0, c1)
         rect = {(r, c) for r in range(r0, r1 + 1) for c in range(c0, c1 + 1)}
-        if first is None or not first.startswith("=") or rect & taken or total + len(rect) > sprd.MAX_FILL_CELLS:
+        if first is None or rect & taken or total + len(rect) > sprd.MAX_FILL_CELLS:
             continue
         total += len(rect)
         taken |= rect
@@ -182,7 +246,8 @@ class ReadsLikeTheReference(unittest.TestCase):
     def test_random_sheets(self):
         import random
         rnd = random.Random(2026)
-        templates = ["=A{row}", "={col}{row-1}*2", "=$B$1", "={col}{row}&\"{{x}}\"", "=X{row+3}", "x{row}", "={rows}", "=A{row-40}"]
+        templates = ["=A{row}", "={col}{row-1}*2", "=$B$1", "={col}{row}&\"{{x}}\"", "=X{row+3}", "x{row}", "={rows}",
+                     "=A{row-40}", "=$A{row}*{col}$1", "=SUM($B$1:B{row})", "=A5"]
         for case in range(400):
             fills = []
             for _ in range(rnd.randint(0, 8)):

@@ -97,5 +97,723 @@
     "A3": "=A2+1"
    }
   }
+ ],
+ "fills": [
+  {
+   "name": "quoted",
+   "fills": [
+    "A1:A3 =\"Row {row}\""
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "absolute",
+   "fills": [
+    "A2:A4 =$B${row}"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "oneColumn",
+   "fills": [
+    "B2:B4 ={col}1*2"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "notFormula",
+   "fills": [
+    "A1:A3 x{row}"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "written",
+   "fills": [
+    "A1:A3 =B5"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "unknown",
+   "fills": [
+    "A1:A3 =A{rows}"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "leftOfA",
+   "fills": [
+    "A1:A3 ={col-1}{row}"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "lowercase",
+   "fills": [
+    "A1:A3 =b{row}+$c$01"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=b1+$c$01",
+    "A2": "=B2+$C$1",
+    "A3": "=B3+$C$1"
+   }
+  },
+  {
+   "name": "block",
+   "fills": [
+    "B2:D4 ={col-1}{row}*2"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "B2": "=A2*2",
+    "C2": "=B2*2",
+    "D2": "=C2*2",
+    "B3": "=A3*2",
+    "C3": "=B3*2",
+    "D3": "=C3*2",
+    "B4": "=A4*2",
+    "C4": "=B4*2",
+    "D4": "=C4*2"
+   }
+  },
+  {
+   "name": "wholeColumns",
+   "fills": [
+    "B1:C3 =SUM({col}:{col})+ROWS($1:{row})"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "B1": "=SUM(B:B)+ROWS($1:1)",
+    "C1": "=SUM(C:C)+ROWS($1:1)",
+    "B2": "=SUM(B:B)+ROWS($1:2)",
+    "C2": "=SUM(C:C)+ROWS($1:2)",
+    "B3": "=SUM(B:B)+ROWS($1:3)",
+    "C3": "=SUM(C:C)+ROWS($1:3)"
+   }
+  },
+  {
+   "name": "colsReversed",
+   "fills": [
+    "A1:B3 =SUM({col+1}:$B)"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=SUM(B:$B)",
+    "B1": "=SUM($B:C)",
+    "A2": "=SUM(B:$B)",
+    "B2": "=SUM($B:C)",
+    "A3": "=SUM(B:$B)",
+    "B3": "=SUM($B:C)"
+   }
+  },
+  {
+   "name": "rowsReversed",
+   "fills": [
+    "A2:A4 =ROWS({row+1}:$3)"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A2": "=ROWS(3:$3)",
+    "A3": "=ROWS($3:4)",
+    "A4": "=ROWS($3:5)"
+   }
+  },
+  {
+   "name": "braces",
+   "fills": [
+    "A1:A2 =\"{{\"&A{row}&\"}}\""
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=\"{\"&A1&\"}\"",
+    "A2": "=\"{\"&A2&\"}\""
+   }
+  },
+  {
+   "name": "curly",
+   "fills": [
+    "A1:A3 =“x{row}”"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "curlyCloses",
+   "fills": [
+    "A1:A3 =\"x“&B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=\"x“&B1",
+    "A2": "=\"x“&B2",
+    "A3": "=\"x“&B3"
+   }
+  },
+  {
+   "name": "sheetLikeCell",
+   "fills": [
+    "A1:A3 =Q1!B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=Q1!B1",
+    "A2": "=Q1!B2",
+    "A3": "=Q1!B3"
+   }
+  },
+  {
+   "name": "quotedSheet",
+   "fills": [
+    "A1:A3 ='Q1 2025'!B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "='Q1 2025'!B1",
+    "A2": "='Q1 2025'!B2",
+    "A3": "='Q1 2025'!B3"
+   }
+  },
+  {
+   "name": "quoteInSheet",
+   "fills": [
+    "A1:A3 ='Bob''s'!B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "='Bob''s'!B1",
+    "A2": "='Bob''s'!B2",
+    "A3": "='Bob''s'!B3"
+   }
+  },
+  {
+   "name": "functionName",
+   "fills": [
+    "A1:A3 =LOG10(B{row})+DEC2BIN(C{row})"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=LOG10(B1)+DEC2BIN(C1)",
+    "A2": "=LOG10(B2)+DEC2BIN(C2)",
+    "A3": "=LOG10(B3)+DEC2BIN(C3)"
+   }
+  },
+  {
+   "name": "table",
+   "fills": [
+    "A1:A3 =SUM(T[Q1])+B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=SUM(T[Q1])+B1",
+    "A2": "=SUM(T[Q1])+B2",
+    "A3": "=SUM(T[Q1])+B3"
+   }
+  },
+  {
+   "name": "linked",
+   "fills": [
+    "A1:A3 =[1]Sheet1!B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=[1]Sheet1!B1",
+    "A2": "=[1]Sheet1!B2",
+    "A3": "=[1]Sheet1!B3"
+   }
+  },
+  {
+   "name": "sheetRun",
+   "fills": [
+    "A1:A3 =SUM(Jan:Dec!B{row})"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=SUM(Jan:Dec!B1)",
+    "A2": "=SUM(Jan:Dec!B2)",
+    "A3": "=SUM(Jan:Dec!B3)"
+   }
+  },
+  {
+   "name": "zeros",
+   "fills": [
+    "A1:A3 =A{row+007}*2"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=A8*2",
+    "A2": "=A9*2",
+    "A3": "=A10*2"
+   }
+  },
+  {
+   "name": "minusZero",
+   "fills": [
+    "A1:A3 =B{row-0}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=B1",
+    "A2": "=B2",
+    "A3": "=B3"
+   }
+  },
+  {
+   "name": "bigOffset",
+   "fills": [
+    "A1:A3 =A{row+1000000000000000}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=A1000000000000001",
+    "A2": "=A1000000000000002",
+    "A3": "=A1000000000000003"
+   }
+  },
+  {
+   "name": "overlap",
+   "fills": [
+    "A1:A3 =B{row}",
+    "A2:A5 =C{row}",
+    "C1:C2 =D{row}"
+   ],
+   "rows": {
+    "1": "kept"
+   },
+   "leftOut": 1,
+   "cells": {
+    "A1": "=B1",
+    "C1": "=D1",
+    "A2": "kept",
+    "C2": "=D2",
+    "A3": "=B3"
+   }
+  },
+  {
+   "name": "mixed",
+   "fills": [
+    "B2:C3 =$A{row}+{col}$1"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "B2": "=$A2+B$1",
+    "C2": "=$A2+C$1",
+    "B3": "=$A3+B$1",
+    "C3": "=$A3+C$1"
+   }
+  },
+  {
+   "name": "pastZZZZ",
+   "fills": [
+    "A1:B2 ={col+475253}{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=ZZZZ1",
+    "B1": "=AAAAA1",
+    "A2": "=ZZZZ2",
+    "B2": "=AAAAA1"
+   }
+  },
+  {
+   "name": "wideSheet",
+   "fills": [
+    "A1:A3 =数据!B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=数据!B1",
+    "A2": "=数据!B2",
+    "A3": "=数据!B3"
+   }
+  },
+  {
+   "name": "wideWord",
+   "fills": [
+    "A1:A3 =ÄB{row}"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "dollarRange",
+   "fills": [
+    "$A$1:$A$3 =B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=B1",
+    "A2": "=B2",
+    "A3": "=B3"
+   }
+  },
+  {
+   "name": "lowerRange",
+   "fills": [
+    "a1:a3 =B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=B1",
+    "A2": "=B2",
+    "A3": "=B3"
+   }
+  },
+  {
+   "name": "zeroRow",
+   "fills": [
+    "A01:A3 =B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=B1",
+    "A2": "=B2",
+    "A3": "=B3"
+   }
+  },
+  {
+   "name": "threeParts",
+   "fills": [
+    "A1:A3:Z9 =B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=B1",
+    "A2": "=B2",
+    "A3": "=B3"
+   }
+  },
+  {
+   "name": "spaces",
+   "fills": [
+    "A1:A3   =B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=B1",
+    "A2": "=B2",
+    "A3": "=B3"
+   }
+  },
+  {
+   "name": "tab",
+   "fills": [
+    "A1:A3\t=B{row}"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "leadingSpace",
+   "fills": [
+    " A1:A3 =B{row}"
+   ],
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "rowZero",
+   "fills": [
+    "A1:A3 =$A$0+B{row}"
+   ],
+   "leftOut": 0,
+   "cells": {
+    "A1": "=$A$0+B1",
+    "A2": "=#REF!+B2",
+    "A3": "=#REF!+B3"
+   }
+  },
+  {
+   "name": "pastRows",
+   "fills": [
+    "A16777215:A16777217 =1",
+    "B1:B2 =2"
+   ],
+   "leftOut": 1,
+   "cells": {
+    "B1": "=2",
+    "B2": "=2"
+   }
+  },
+  {
+   "name": "farName",
+   "fills": [
+    "A1:A3 =Rate1*B{row}"
+   ],
+   "names": {
+    "Rate1": "S!$Z$1",
+    "Data!YTD2024": "S!$Z$2"
+   },
+   "leftOut": 0,
+   "cells": {
+    "A1": "=Rate1*B1",
+    "A2": "=Rate1*B2",
+    "A3": "=Rate1*B3"
+   }
+  },
+  {
+   "name": "farRange",
+   "fills": [
+    "A1:A3 =Rate1:A{row}"
+   ],
+   "names": {
+    "Rate1": "S!$Z$1",
+    "Data!YTD2024": "S!$Z$2"
+   },
+   "leftOut": 1,
+   "cells": {}
+  },
+  {
+   "name": "farMovedOnto",
+   "fills": [
+    "A1:B2 ={col+317567}{row}*2"
+   ],
+   "names": {
+    "Rate1": "S!$Z$1",
+    "Data!YTD2024": "S!$Z$2"
+   },
+   "leftOut": 0,
+   "cells": {
+    "A1": "=RATD1*2",
+    "B1": "=RATE1*2",
+    "A2": "=RATD2*2",
+    "B2": "=RATE1*2"
+   }
+  },
+  {
+   "name": "scopedName",
+   "fills": [
+    "A1:A2 =YTD2024+B{row}"
+   ],
+   "names": {
+    "Rate1": "S!$Z$1",
+    "Data!YTD2024": "S!$Z$2"
+   },
+   "leftOut": 0,
+   "cells": {
+    "A1": "=YTD2024+B1",
+    "A2": "=YTD2024+B2"
+   }
+  }
+ ],
+ "limits": [
+  {
+   "why": "cells",
+   "limits": {
+    "cells": 5,
+    "columns": 100,
+    "text": 1000000000,
+    "moves": 100
+   },
+   "lines": [
+    "A1:A3 =B{row}",
+    "B1:B3 =C{row}",
+    "C1:C2 =D{row}"
+   ],
+   "leftOut": 1,
+   "kept": [
+    [
+     0,
+     0,
+     2,
+     "=B1"
+    ],
+    [
+     2,
+     0,
+     1,
+     "=D1"
+    ]
+   ]
+  },
+  {
+   "why": "a line the template check refuses names no columns",
+   "limits": {
+    "cells": 1000,
+    "columns": 2,
+    "text": 1000000000,
+    "moves": 100
+   },
+   "lines": [
+    "A1:A1 =1",
+    "B1:B1 x",
+    "C1:C1 =3"
+   ],
+   "leftOut": 1,
+   "kept": [
+    [
+     0,
+     0,
+     0,
+     "=1"
+    ],
+    [
+     2,
+     0,
+     0,
+     "=3"
+    ]
+   ]
+  },
+  {
+   "why": "a line refused for covering a cell names its columns",
+   "limits": {
+    "cells": 1000,
+    "columns": 3,
+    "text": 1000000000,
+    "moves": 100
+   },
+   "lines": [
+    "A1:A1 =1",
+    "A1:A1 =2",
+    "B1:B1 =3",
+    "C1:C1 =4"
+   ],
+   "leftOut": 2,
+   "kept": [
+    [
+     0,
+     0,
+     0,
+     "=1"
+    ],
+    [
+     1,
+     0,
+     0,
+     "=3"
+    ]
+   ]
+  },
+  {
+   "why": "text",
+   "limits": {
+    "cells": 1000,
+    "columns": 100,
+    "text": 20,
+    "moves": 100
+   },
+   "lines": [
+    "A1:A2 =B{row}",
+    "B1:B1 =12345",
+    "C1:C1 =1"
+   ],
+   "leftOut": 1,
+   "kept": [
+    [
+     0,
+     0,
+     1,
+     "=B1"
+    ],
+    [
+     1,
+     0,
+     0,
+     "=12345"
+    ]
+   ]
+  },
+  {
+   "why": "text in UTF-16 units",
+   "limits": {
+    "cells": 1000,
+    "columns": 100,
+    "text": 4,
+    "moves": 100
+   },
+   "lines": [
+    "A1:A1 =\"😀\"",
+    "B1:B1 =\"a\""
+   ],
+   "leftOut": 1,
+   "kept": [
+    [
+     1,
+     0,
+     0,
+     "=\"a\""
+    ]
+   ]
+  },
+  {
+   "why": "moves",
+   "limits": {
+    "cells": 1000,
+    "columns": 100,
+    "text": 1000000000,
+    "moves": 1
+   },
+   "lines": [
+    "A5:A5 =1",
+    "A3:A3 =2",
+    "A1:A1 =3",
+    "A9:A9 =4"
+   ],
+   "leftOut": 1,
+   "kept": [
+    [
+     0,
+     4,
+     4,
+     "=1"
+    ],
+    [
+     0,
+     2,
+     2,
+     "=2"
+    ],
+    [
+     0,
+     8,
+     8,
+     "=4"
+    ]
+   ]
+  },
+  {
+   "why": "a block",
+   "limits": {
+    "cells": 1000,
+    "columns": 3,
+    "text": 1000000000,
+    "moves": 100
+   },
+   "lines": [
+    "B2:C3 ={col-1}{row}",
+    "D1:E1 =1",
+    "D2:D2 =2"
+   ],
+   "leftOut": 1,
+   "kept": [
+    [
+     1,
+     1,
+     2,
+     "=A2"
+    ],
+    [
+     2,
+     1,
+     2,
+     "=B2"
+    ],
+    [
+     3,
+     1,
+     1,
+     "=2"
+    ]
+   ]
+  }
  ]
 }

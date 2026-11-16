@@ -261,7 +261,7 @@ class Fills(Folder):
 
     def test_a_huge_fill_listed_whole_is_refused_quickly(self):
         # 19.9 million a sheet (two columns, under the app's row bound), three sheets.
-        sheets = [sheet(f"S{i}", fills=["A1:B9950000 =C{row}*2"]) for i in range(3)]
+        sheets = [sheet(f"S{i}", fills=["A1:B9950000 ={col+2}{row}*2"]) for i in range(3)]
         p = self.book(doc_of(*sheets))
         code, out, err, took, peak = program("read", p, "--format", "json")
         self.assertRefused(code, err, "more than 50,000,000 cells")
@@ -272,7 +272,7 @@ class Fills(Folder):
         code, out, err, took, peak = program("read", p)
         self.assertEqual(code, 0, err)
         self.assertIn("# sheet S2: 19900000 cells", out)
-        self.assertIn("B250\t=C250*2\n# ... 19899500 more", out)
+        self.assertIn("A250\t=C250*2\nB250\t=D250*2\n# ... 19899500 more", out)
         self.assertLess(took, 10)
 
     def test_a_small_range_of_a_huge_fill_is_cheap_and_right(self):
@@ -290,12 +290,37 @@ class Fills(Folder):
         self.assertLess(peak, SMALL_MEMORY)
 
     def test_fill_formulas_are_measured_before_they_are_written(self):
-        long = "=" + "+".join(f"B{{row}}*{i}" for i in range(40))  # ~400 characters a cell
-        p = self.book(doc_of(sheet(fills=[f"A1:B9950000 {long}"])))
+        # Two sheets of 19.9 million cells, each line inside the app's own bound
+        # (cells times its 90-character template), ~66 characters a cell: more
+        # than 2^31 characters together, so the read is refused before writing.
+        long = "=" + "+".join(f"{{col+2}}{{row}}*{i}" for i in range(6))
+        self.assertLessEqual(19_900_000 * len(long), sprd.MAX_FILL_LINE_TEXT)
+        p = self.book(doc_of(sheet("A", fills=[f"A1:B9950000 {long}"]), sheet("B", fills=[f"A1:B9950000 {long}"])))
         code, out, err, took, peak = program("read", p, "--format", "cells", "--max", "0", "--out", self.path("out.txt"))
         self.assertRefused(code, err, "more than 2,147,483,648 characters of formulas")
+        self.assertNotIn("left out", err)
         self.assertFalse(os.path.exists(self.path("out.txt")))
         self.assertLess(took, 10)
+
+    def test_a_line_past_the_apps_text_bound_is_left_out(self):
+        # The app's own bound: a line's cells times its template's length, at
+        # most 2^31 - 1 for the sheet. 10 million cells of a 215-character
+        # template pass it; the same line with one character more does not.
+        def template(n):
+            body = "=B{row}+" + "1" * (n - 9)
+            self.assertEqual(len(body + "1"), n)
+            return body + "1"
+        cases = [(214, 1), (215, 0)]   # 10,000,000 x 214 <= 2^31 - 1 < 10,000,000 x 215
+        for length, kept in cases:
+            with self.subTest(length=length):
+                p = self.book(doc_of(sheet(fills=[f"A1:A10000000 {template(length)}"])))
+                code, out, err = run("info", p)
+                self.assertEqual(code, 0, err)
+                self.assertIn("10000000 cells" if kept else "0 cells", out)
+                self.assertEqual("left out" in out, not kept)
+        # Counted in UTF-16 units, as the app counts: an emoji is two.
+        wide = '="' + "\U0001F600" * 3 + '"&B{row}'
+        self.assertEqual(sprd._js_length(wide), len(wide) + 3)
 
     def test_the_fill_text_limit_counts_what_would_be_written(self):
         p = self.book(doc_of(sheet(fills=["A1:A20 =B{row}*1234567"])))  # 12-13 characters a cell
@@ -304,16 +329,21 @@ class Fills(Folder):
             self.assertEqual(run("read", p, "--format", "json", "--range", "A1:A10")[0], 0)
             self.assertEqual(run("read", p, "--max", "10")[0], 0, "the screen's first ten only")
 
-    def test_fill_lines_in_too_many_pieces_are_refused_quickly(self):
+    def test_fill_lines_in_many_pieces_are_left_out_quickly(self):
         # A cell in every column of row 1 and one at ZZZZ2; then lines A2:ZZZZ2
-        # that each clash only at their far end, over and over.
+        # that each clash only at their far end, over and over. As in the app,
+        # each clash is found by looking at its columns, and once the sheet's
+        # lines have named 6,666,666 columns the rest are left out unlooked at.
         lines = [f"{sprd.col_name(c)}1:{sprd.col_name(c)}1 =1" for c in range(0, sprd.MAX_COL + 1)]
         lines.append("ZZZZ2:ZZZZ2 =1")
         lines += ["A2:ZZZZ2 =1"] * 1000
         p = self.book(doc_of(sheet(fills=lines)))
         code, out, err, took, peak = program("info", p)
-        self.assertRefused(code, err, "too many pieces")
-        self.assertLess(took, 30)
+        self.assertEqual(code, 0, err)
+        self.assertIn(f"{sprd.MAX_COL + 2} cells", out)
+        self.assertIn("1000 fill line(s) left out", out)
+        self.assertLess(took, 60)
+        self.assertLess(peak, 600 * MB, f"peak {peak // MB} MB")
 
 
 class Output(Folder):

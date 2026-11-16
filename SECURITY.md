@@ -37,7 +37,7 @@ limits. Real workbooks stay far inside them; the largest measured hold about
 | The file on disk | 2 GiB |
 | Its text, unzipped | 2 GiB (Spredin's own longest text is 2^31 characters). It is unzipped a piece at a time and measured before it is kept, so a small file that unzips to more is refused while holding almost nothing. |
 | JSON values and keys outside cell text | 50 million, counted before the JSON is parsed. Each takes under 90 bytes once parsed (measured on Python 3.9 and 3.14). |
-| A sheet's fill lines (`"E2:E200001 =C{row}*D{row}"`) | 20 million cells together, Spredin's own bound: the line past it is left out, as the app leaves it out, and a note says so. Also 20 million steps to sort out how the lines lie. |
+| A sheet's fill lines (`"E2:E200001 =C{row}*D{row}"`) | Spredin's own bounds, all lines of a sheet together: 20 million cells, 6,666,666 columns named by the lines, 2^31 - 1 for their cells times the length of their templates, and 2^31 ranges moved to keep each column's lines in order. The line past one is left out, as the app leaves it out, and a note says so. A line is also left out, as in the app, unless its template is the one Spredin writes for its first formula. Also 20 million steps to walk the lines row by row. |
 | One cell | 64 MiB of text |
 | One row line | 1,048,576 cells (the row is left out, with a note) |
 | Cells listed by `read` (`cells`, `json`) or built by `sheet_cells()` | 50 million |

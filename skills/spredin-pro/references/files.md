@@ -95,8 +95,10 @@ A `.sprd` is UTF-8 JSON, gzipped (the app also reads it unzipped).
   Each sheet may have:
   - `fills`: one line per filled-down range, `"E2:E200001 =C{row}*D{row}"`.
     `{row}` is the cell's own row number, `{row-1}` the row above, `{col}` its
-    column letters, `{{` and `}}` a brace. Every cell of the range holds the
-    template read at that cell.
+    column letters, `{{` and `}}` a brace. The first cell holds the template
+    read there; every other cell holds that formula moved to it, as the fill
+    handle moves it (references written in capitals, without leading zeros).
+    Spredin keeps a line only on the rules below.
   - `rows`: only the cells no fill gives; a cell in `rows` wins over a fill.
   - `formats` (`"A2:A200001 3"`) into `styleTable` (a list of formats), with
     `styles` holding only cells formatted by hand.
@@ -111,12 +113,39 @@ A `.sprd` is UTF-8 JSON, gzipped (the app also reads it unzipped).
   named in the status line; a field it does not know is kept. Write the plain
   form (`"spredin": 1`, every cell in `rows`) and leave the rest to the app.
 
+### Fill lines Spredin keeps
+
+A line is a range, one space and a template. Spredin keeps it only if the
+template is exactly what Spredin itself writes for the formula it reads at the
+first cell: each relative row of a reference is `{row+k}`, and in a line wider
+than one column each relative column is `{col+k}`. Absolute parts, text in
+quotes, function names and sheet names stay as written. `{row+0}` is `{row}`.
+So Spredin leaves out, with its cells:
+
+- a placeholder inside quoted text: `A1:A3 ="Row {row}"`;
+- a placeholder for an absolute part: `A2:A4 =$B${row}`;
+- `{col}` in a line one column wide: `B2:B4 ={col}1*2`;
+- a relative reference written out: `A1:A3 =B5` (write `=B{row+4}`);
+- a line whose first cell is not a formula, or whose range or template
+  cannot be read;
+- a line over a cell an earlier line covers;
+- a line that takes the sheet's lines past Spredin's limits: 20,000,000
+  cells; 6,666,666 columns named by the lines (a line left out for covering a
+  cell still counts its columns); 2^31 - 1 for the lines' cells times the
+  length of their templates (counted in UTF-16 units, so an emoji is two);
+  2^31 ranges moved to keep each column's lines in order.
+
+A defined name spelled like a cell past column XFD (`Rate1`) is the name in a
+template, not a reference. Spredin also knows the names of workbooks it opened
+earlier; `sprd.py` knows only this file's.
+
 `sprd.py read` applies all of this: it prints each cell's content as Spredin
 reads it, with fills expanded in the compact form and the rows alone in the
-others. It keeps fill lines as Spredin keeps them: a line
-past the bounds, whose first cell is not a formula, that covers cells an
-earlier line covers, or that takes the sheet's fill lines past 20,000,000 cells
-is left out, and a note on stderr (and in `info`) says so.
+others. A line Spredin would leave out is left out, and a note on stderr (and
+in `info`) says how many. One difference: `sprd.py` also leaves out a line
+with a row number, or a `{row+k}` step, of 2^52 or more, which Spredin's
+numbers may not hold exactly. If you write fill lines by hand, run
+`sprd.py info` on the file: no note means Spredin keeps them all.
 
 ## What `sprd.py` refuses, and what it shows
 
@@ -128,7 +157,7 @@ writes. Real workbooks stay far inside these (the largest measured hold about
 |---|---|
 | The file on disk, and its text unzipped | 2 GiB each (Spredin's own longest text is 2^31 characters); unzipped a piece at a time, so a small file that unzips to more is refused holding nothing |
 | JSON values and keys outside cell text | 50 million (each takes under 90 bytes once parsed) |
-| A sheet's fill lines | 20 million cells (Spredin's own bound; the line past it is left out, as in the app); 20 million steps to sort out how they lie |
+| A sheet's fill lines | Spredin's own limits (above): the line past one is left out, as in the app; 20 million steps to walk them row by row |
 | One cell | 64 MiB of text |
 | One row line | 1,048,576 cells (that row is left out) |
 | `read` in the `cells` or `json` format, and `sheet_cells()` | 50 million cells listed |
