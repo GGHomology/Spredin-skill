@@ -31,7 +31,7 @@ def read(path):
 
 def text_files():
     for folder, dirs, files in os.walk(ROOT):
-        dirs[:] = [d for d in dirs if d not in {".git", "dist", "__pycache__", "fixtures"}]
+        dirs[:] = [d for d in dirs if d not in {".git", "dist", "__pycache__", "fixtures", ".pytest_cache", ".mypy_cache", ".ruff_cache", ".venv", "venv"}]
         for name in files:
             if name.endswith((".md", ".py", ".json", ".mts", ".txt")) or name in {"VERSION", ".gitignore"}:
                 yield os.path.join(folder, name)

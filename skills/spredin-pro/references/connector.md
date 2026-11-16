@@ -52,14 +52,16 @@ working in when several are open.
 | `memory` | read or change the workbook's notes for the assistant |
 | `slides` | read and edit the workbook's linked slide decks; present one; export one (Spredin's save panel opens, and the person chooses where) |
 
-### `run_python` changes the workbook, even to read
+### `run_python` to read
 
-A script from a connected app is saved in the workbook as `assistant.py`
-(replacing a file of that name), the Python panel opens, and the workbook is
-marked unsaved, even when the script only reads. So to read, use
-`read_range`, `aggregate`, `describe_sheet` or `find`. A script that only reads,
-and reaches nothing beyond the workbook, runs without a card. Do not import
-the workbook's own scripts unless the person has seen them (SKILL.md rule 4).
+A script that only reads, and reaches nothing beyond the workbook, runs
+without a card and changes nothing in the workbook: Spredin's Python panel
+opens and shows its output, and the workbook stays saved. A script that
+writes asks first, and once allowed is kept in the workbook as
+`assistant.py` (replacing a file of that name), so the person can see what
+ran. For a quick look, `read_range`, `aggregate`, `describe_sheet` and
+`find` are lighter. Do not import the workbook's own scripts unless the
+person has seen them (SKILL.md rule 4).
 
 ## Changes, and when they ask first
 
