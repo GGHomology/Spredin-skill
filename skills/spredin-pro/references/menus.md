@@ -122,7 +122,7 @@ or when a setting is on; a label "A / B" is one item that reads A or B by state.
   - **Keep Edit History** — Record every change so History can show it and undo from any point. The record stays on this Mac, beside the file: a copy, or a file you send, carries none.
   - **Record More Detail** — With Keep Edit History on, also note what a connected AI app read, and keep the script or cells each AI change was approved as.
   - **Mark Changes as Claude’s** — Record the next changes in Edit History as made by Claude: for Claude working in Spredin on screen.
-- **Connect AI Apps** — Let an AI app on this Mac, such as Claude, read and change your workbooks, with your approval for each change.
+- **Connect AI Apps** — Let an AI app on this Mac, such as Claude, read your open workbooks and ask to change them; changes are shown to you first unless you apply them without asking.
 - **Excel Key Chains (⌥)** — Tap ⌥ (Option), then Excel's Alt letters: E S V pastes values, H O I fits the columns, D F F filters; Esc cancels
 - **Keep Excel Content in Spredin Files** — A workbook opened from Excel keeps its pictures, pivot tables and charts as Excel drew them in its .sprd, so saving it as Excel later puts them back. Off makes smaller files; saving as Excel then says what is missing.
 - **Save Workbooks in Compact Form** — A filled-down column of formulas, and a block of cells with one format, is written once instead of cell by cell: smaller files that open faster. Off writes every cell's text, as earlier versions did.
