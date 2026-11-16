@@ -587,11 +587,18 @@ class Malformed(Folder):
         self.assertIn("4 row(s) could not be read", out)
         self.assertIn("sheet 3: 'C' A1:A1 - 1 cells", out)
         self.assertIn("3 cell(s) of the old cell map could not be read", out)
-        self.assertIn("sheet 4: 'D' A1:B3 - 3 cells, 3 formulas", out)
+        # A file read from `sheets`: its rows hold every cell, so the one good
+        # fill line adds none, and the six bad ones are still noted.
+        self.assertIn("sheet 4: 'D' - 0 cells, 0 formulas", out)
         self.assertIn("6 fill line(s) left out", out)
         code, out, err = run("read", p, "--format", "json")
         self.assertEqual(code, 0, err)
-        self.assertEqual(json.loads(out), {"": {}, "B": {"A4": "ok"}, "C": {"A1": "a"}, "D": {"B1": "=1", "B2": "=1", "B3": "=1"}})
+        self.assertEqual(json.loads(out), {"": {}, "B": {"A4": "ok"}, "C": {"A1": "a"}, "D": {}})
+        # The same sheet in the compact form: the good line's cells are there.
+        compact = dict(doc, compactSheets=doc["sheets"], sheets=[{"name": "Update Spredin"}])
+        code, out, err = run("read", self.book(compact, "compact.sprd"), "--format", "json", "--sheet", "D")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(json.loads(out), {"D": {"B1": "=1", "B2": "=1", "B3": "=1"}})
 
     def test_the_backstop_says_one_line_and_nothing_of_the_file(self):
         def boom(_args):

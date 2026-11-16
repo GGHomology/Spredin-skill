@@ -29,8 +29,8 @@ def run(*argv):
     return code, out.getvalue(), err.getvalue()
 
 
-def cells_by_label(sf):
-    return {sprd.label(r, c): v for (r, c), v in sprd.sheet_cells(sf).items()}
+def cells_by_label(sf, complete=False):
+    return {sprd.label(r, c): v for (r, c), v in sprd.sheet_cells(sf, complete=complete).items()}
 
 
 class ReadsWhatTheAppWrites(unittest.TestCase):
@@ -40,7 +40,8 @@ class ReadsWhatTheAppWrites(unittest.TestCase):
         self.assertEqual(set(expected), {"compact.sprd", "dual.sprd", "full.sprd", "plain-bom.sprd"})
         for name, want in expected.items():
             doc = sprd.load(os.path.join(FIX, name))
-            got = {sf["name"]: cells_by_label(sf) for sf in sprd.sheet_files(doc)}
+            complete = sprd.rows_hold_every_cell(doc)
+            got = {sf["name"]: cells_by_label(sf, complete) for sf in sprd.sheet_files(doc)}
             self.assertEqual(got, want["sheets"], name)
             self.assertEqual(doc.get("names", {}), want["names"], name)
 
@@ -48,10 +49,53 @@ class ReadsWhatTheAppWrites(unittest.TestCase):
         forms = {n: sprd.form_of(sprd.load(os.path.join(FIX, n))) for n in ("compact.sprd", "dual.sprd", "full.sprd", "plain-bom.sprd")}
         self.assertEqual(forms, {"compact.sprd": "compact", "dual.sprd": "dual", "full.sprd": "full", "plain-bom.sprd": "full"})
 
+    def test_fixtures_are_read_with_the_rule_for_their_form(self):
+        # sheet_cells without `complete` reads fill lines as a compact file's;
+        # the dual fixture is the same either way only because the app wrote it.
+        self.assertTrue(sprd.rows_hold_every_cell(sprd.load(os.path.join(FIX, "dual.sprd"))))
+        self.assertFalse(sprd.rows_hold_every_cell(sprd.load(os.path.join(FIX, "compact.sprd"))))
+
     def test_the_compact_stub_is_not_read_as_a_sheet(self):
         doc = sprd.load(os.path.join(FIX, "compact.sprd"))
         self.assertEqual([s["name"] for s in sprd.sheet_files(doc)], ["Sales", "Notes, 2026"])
         self.assertEqual([s["name"] for s in doc["sheets"]], ["Update Spredin"])
+
+
+with open(os.path.join(FIX, "rules.json"), encoding="utf-8") as _f:
+    RULES = json.load(_f)  # written by tools/app-check.mts: what the APP reads
+
+
+def read_doc(doc):
+    """{sheet name: {label: text}} as sprd.py reads a whole workbook."""
+    complete = sprd.rows_hold_every_cell(doc)
+    return {sf["name"]: {sprd.label(r, c): v for (r, c), v in sprd.sheet_cells(sf, complete=complete).items()}
+            for sf in sprd.sheet_files(doc)}
+
+
+class TheDualForm(unittest.TestCase):
+    """A file read from `sheets` with fill lines beside its rows: the rows hold
+    every cell, and a fill line may confirm a cell but never adds one."""
+
+    def test_reads_as_the_app_reads(self):
+        self.assertEqual(len(RULES["dual"]), 4)
+        for case in RULES["dual"]:
+            with self.subTest(doc=json.dumps(case["doc"])[:80]):
+                self.assertEqual(sprd.form_of(case["doc"]), case["form"])
+                self.assertEqual(read_doc(case["doc"])["S"], case["cells"])
+
+    def test_a_cell_the_rows_leave_empty_stays_empty(self):
+        doc = {"spredin": 1, "sheets": [{"name": "S", "rows": {"0": "1", "1": "=A1+1"}, "fills": ["A2:A3 =A{row-1}+1"]}]}
+        self.assertEqual(read_doc(doc)["S"], {"A1": "1", "A2": "=A1+1"}, "A3 is empty, as in Spredin")
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "dual.sprd")
+            with open(p, "wb") as f:
+                f.write(gzip.compress(json.dumps(doc).encode("utf-8")))
+            code, out, err = run("info", p)
+            self.assertEqual(code, 0, err)
+            self.assertIn("form: dual (file version 1): the rows hold every cell, and the fill lines add none", out)
+            self.assertIn("sheet 1: 'S' A1:A2 - 2 cells, 1 formulas, 1 fill lines", out)
+            code, out, err = run("read", p, "--format", "json")
+            self.assertEqual(json.loads(out), {"S": {"A1": "1", "A2": "=A1+1"}})
 
 
 class Templates(unittest.TestCase):

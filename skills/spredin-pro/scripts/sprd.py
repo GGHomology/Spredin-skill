@@ -272,6 +272,14 @@ def form_of(doc):
     return "full"
 
 
+def rows_hold_every_cell(doc):
+    """True unless the file is in the compact form. A file read from `sheets`
+    holds every cell in its rows; fill lines beside them (the dual form) may
+    confirm a cell but never add one, as the app reads them (workbook.ts
+    deserializeWorkbook, store.ts applyFills with `complete`)."""
+    return not isinstance(doc.get("compactSheets"), list)
+
+
 def sheet_files(doc):
     """The sheets as the app reads them: `compactSheets` when present (`sheets`
     then holds only a stub for old versions), else `sheets`."""
@@ -376,9 +384,13 @@ class Sheet:
     are kept or left out as the app keeps them: a line past its bounds, whose
     first cell is not a formula, that covers a cell an earlier line covers, or
     that takes the sheet's fill lines past MAX_FILL_CELLS is left out, and
-    `notes` says so. The rows win over the fills where both give a cell."""
+    `notes` says so. The rows win over the fills where both give a cell.
 
-    def __init__(self, sf):
+    `complete`: the rows hold every cell (a file in the dual form, see
+    rows_hold_every_cell), so the fill lines add none. They are still read,
+    so a line the app would leave out is noted as it is in the app."""
+
+    def __init__(self, sf, complete=False):
         self.name = sheet_name(sf)
         self.notes = []
         self.fills = []
@@ -397,6 +409,8 @@ class Sheet:
                 self.notes.append(f"{bad} cell(s) of the old cell map could not be read")
             return
         self._keep_fills(sf.get("fills"))
+        if complete:
+            self.fills = []  # in this form the rows hold every cell: a fill line adds none
         rows = sf.get("rows")
         if rows is None:
             rows = {}
@@ -664,11 +678,12 @@ class _Active:
         return self._order
 
 
-def sheet_cells(sf, box=None):
+def sheet_cells(sf, box=None, complete=False):
     """{(r, c): text} for one sheet: the fill lines first, then the rows, which
-    win where they write a cell (the app's rule). Empty cells are left out.
-    Refuses a sheet of more than MAX_LIST_CELLS cells."""
-    sheet = Sheet(sf)
+    win where they write a cell (the app's rule); with `complete` (a file not
+    in the compact form: rows_hold_every_cell), the rows alone. Empty cells
+    are left out. Refuses a sheet of more than MAX_LIST_CELLS cells."""
+    sheet = Sheet(sf, complete)
     n = sheet.stats(box)["cells"]
     if n > MAX_LIST_CELLS:
         raise SprdError(f"sheet '{_shown(sheet.name, 40)}' holds {n:,} cells, more than {MAX_LIST_CELLS:,}")
@@ -693,9 +708,11 @@ def cmd_info(args):
     doc = load(args.file)
     version = doc.get("spredin")
     version = version if isinstance(version, int) and not isinstance(version, bool) and 0 <= version < 10 ** 6 else "?"
-    out = [f"form: {form_of(doc)} (file version {version})"]
+    form = form_of(doc)
+    complete = rows_hold_every_cell(doc)
+    out = [f"form: {form} (file version {version})" + (": the rows hold every cell, and the fill lines add none" if form == "dual" else "")]
     for i, sf in enumerate(sheet_files(doc), 1):
-        sheet = Sheet(sf)
+        sheet = Sheet(sf, complete)
         s = sheet.stats()
         extent = " " + label(0, 0) + ":" + label(s["last_row"], s["last_col"]) if s["cells"] else ""
         parts = [f"{s['cells']} cells", f"{s['formulas']} formulas"]
@@ -733,7 +750,8 @@ def cmd_read(args):
     if args.max < 0:
         raise SprdError("--max is a number of cells, 0 for all")
     doc = load(args.file)
-    chosen = [Sheet(sf) for sf in pick_sheet(doc, args.sheet)]
+    complete = rows_hold_every_cell(doc)
+    chosen = [Sheet(sf, complete) for sf in pick_sheet(doc, args.sheet)]
     box = parse_range(args.range) if args.range else None
     # Measure what will be written before writing any of it.
     listed = printed = fill_text = 0

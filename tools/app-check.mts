@@ -159,3 +159,26 @@ try {
 }
 console.log(bad ? `sprd.py write: ${bad} difference(s)` : 'sprd.py write: the app reads every cell, format, width, freeze and name as written');
 if (bad) process.exit(1);
+
+// --- 3. reading rules, as the app reads them ---------------------------------
+//
+// tests/fixtures/rules.json: small hand-made workbooks and what the APP reads
+// from them, for tests/test_sprd.py to hold sprd.py to.
+
+const rules: Record<string, unknown> = {};
+
+// A file in the dual form (`sheets` with fill lines beside the rows): the rows
+// hold every cell, and a fill line never adds one. A compact file for contrast.
+const dualDocs: Record<string, unknown>[] = [
+  { spredin: 1, active: 0, sheets: [{ name: 'S', rows: { '0': '1', '1': '=A1+1' }, fills: ['A2:A3 =A{row-1}+1'] }] },
+  { spredin: 1, active: 0, sheets: [{ name: 'S', rows: { '0': '1', '1': '=A1+1', '2': 'changed' }, fills: ['A2:A3 =A{row-1}+1'] }] },
+  { spredin: 2, active: 0, sheets: [{ name: 'S', rows: { '0': 'x' }, fills: ['B1:B3 =A{row}'] }] },
+  { spredin: 2, active: 0, sheets: [{ name: 'Update Spredin' }], compactSheets: [{ name: 'S', rows: { '0': '1' }, fills: ['A2:A3 =A{row-1}+1'] }] },
+];
+rules.dual = dualDocs.map((doc) => {
+  const got = wb.parseSpredinText(JSON.stringify(doc));
+  return { doc, form: got.form, cells: cellsOf(got.sheets[0]) };
+});
+
+writeFileSync(join(FIX, 'rules.json'), JSON.stringify(rules, null, 1) + '\n');
+console.log(`rules: ${(rules.dual as unknown[]).length} dual-form files read by the app`);

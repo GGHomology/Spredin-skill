@@ -1,0 +1,101 @@
+{
+ "dual": [
+  {
+   "doc": {
+    "spredin": 1,
+    "active": 0,
+    "sheets": [
+     {
+      "name": "S",
+      "rows": {
+       "0": "1",
+       "1": "=A1+1"
+      },
+      "fills": [
+       "A2:A3 =A{row-1}+1"
+      ]
+     }
+    ]
+   },
+   "form": "dual",
+   "cells": {
+    "A1": "1",
+    "A2": "=A1+1"
+   }
+  },
+  {
+   "doc": {
+    "spredin": 1,
+    "active": 0,
+    "sheets": [
+     {
+      "name": "S",
+      "rows": {
+       "0": "1",
+       "1": "=A1+1",
+       "2": "changed"
+      },
+      "fills": [
+       "A2:A3 =A{row-1}+1"
+      ]
+     }
+    ]
+   },
+   "form": "dual",
+   "cells": {
+    "A1": "1",
+    "A2": "=A1+1",
+    "A3": "changed"
+   }
+  },
+  {
+   "doc": {
+    "spredin": 2,
+    "active": 0,
+    "sheets": [
+     {
+      "name": "S",
+      "rows": {
+       "0": "x"
+      },
+      "fills": [
+       "B1:B3 =A{row}"
+      ]
+     }
+    ]
+   },
+   "form": "dual",
+   "cells": {
+    "A1": "x"
+   }
+  },
+  {
+   "doc": {
+    "spredin": 2,
+    "active": 0,
+    "sheets": [
+     {
+      "name": "Update Spredin"
+     }
+    ],
+    "compactSheets": [
+     {
+      "name": "S",
+      "rows": {
+       "0": "1"
+      },
+      "fills": [
+       "A2:A3 =A{row-1}+1"
+      ]
+     }
+    ]
+   },
+   "form": "compact",
+   "cells": {
+    "A1": "1",
+    "A2": "=A1+1",
+    "A3": "=A2+1"
+   }
+  }
+ ]
+}

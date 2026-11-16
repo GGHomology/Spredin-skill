@@ -100,14 +100,20 @@ A `.sprd` is UTF-8 JSON, gzipped (the app also reads it unzipped).
   - `rows`: only the cells no fill gives; a cell in `rows` wins over a fill.
   - `formats` (`"A2:A200001 3"`) into `styleTable` (a list of formats), with
     `styles` holding only cells formatted by hand.
+- **The dual form** (what Spredin writes when it saves a file it opened in
+  the plain form) has `"spredin": 1`, full `rows` in `sheets` as the plain form has,
+  and the `fills` and `formats` lines beside them. The rows hold every cell,
+  so a fill line adds none: a cell the rows leave empty stays empty, even
+  inside a fill line's range. Any file without `compactSheets` is read this way.
 - Pro parts: `decks` (slides), `memory` (the assistant's note), `chat` (a kept
   conversation). Change slides with the Python deck API, not by hand.
 - The app checks a file as it opens it: a part it cannot read is left out and
   named in the status line; a field it does not know is kept. Write the plain
   form (`"spredin": 1`, every cell in `rows`) and leave the rest to the app.
 
-`sprd.py read` applies all of this: it prints each cell's content with fills
-expanded, from either form. It keeps fill lines as Spredin keeps them: a line
+`sprd.py read` applies all of this: it prints each cell's content as Spredin
+reads it, with fills expanded in the compact form and the rows alone in the
+others. It keeps fill lines as Spredin keeps them: a line
 past the bounds, whose first cell is not a formula, that covers cells an
 earlier line covers, or that takes the sheet's fill lines past 20,000,000 cells
 is left out, and a note on stderr (and in `info`) says so.
