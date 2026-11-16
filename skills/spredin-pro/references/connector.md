@@ -16,8 +16,11 @@ through the same checks and approval rules as Spredin's own assistant.
   the connector gives you a **pairing code** of 6 characters. Show the person
   that code, and tell them to click **Allow** in Spredin **only if Spredin shows
   the same code** (it writes it as `K7Q-M2X`); a different code, or no code,
-  means something else is asking, and they should click Don't Allow. Then call
-  again. If they declined, do not ask again unless they say so.
+  means something else is asking, and they should click Don't Allow. Show the
+  code first, in your reply; then call the same tool again: that call waits
+  until they answer, and goes on when they allow. If it says they have not
+  answered yet, call it again to keep waiting. If they declined, do not ask
+  again unless they say so.
 - If a call says **Spredin no longer accepts this connection** (they
   disconnected Claude in Spredin, or another program is answering), do not
   retry. Tell the person, and call `connect_spredin` only if they ask to
