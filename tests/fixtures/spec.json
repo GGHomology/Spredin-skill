@@ -1,0 +1,38 @@
+{
+  "sheets": [
+    {
+      "name": "Budget",
+      "rows": [
+        ["Item", "Jan", "Feb", "Total", "Share"],
+        ["Rent", 1800, 1800, "=B2+C2", "=D2/$D$6"],
+        ["Food", 412.35, 398.1, "=B3+C3", "=D3/$D$6"],
+        ["Travel", 0, 250, "=B4+C4", "=D4/$D$6"],
+        ["Notes, \"misc\"", null, 12.5, "=B5+C5", "=D5/$D$6"],
+        ["Total", "=SUM(B2:B5)", "=SUM(C2:C5)", "=SUM(D2:D5)", "=SUM(E2:E5)"]
+      ],
+      "cells": {
+        "A8": "007",
+        "B8": "'1200",
+        "C8": 46341,
+        "D8": true,
+        "A9": "line one\nline two",
+        "B9": "=Rate*D6",
+        "A10": "Smith, J"
+      },
+      "formats": {
+        "A1:E1": {"bold": true, "fill": "#e8eef6"},
+        "B2:D6": "#,##0.00",
+        "E2:E6": "0.0%",
+        "C8": "yyyy-mm-dd"
+      },
+      "widths": {"A": 140, "E": 80},
+      "freeze": {"rows": 1, "cols": 1}
+    },
+    {
+      "name": "Rates 2026",
+      "at": "B2",
+      "rows": [["Rate", 0.075], ["Months", 12]]
+    }
+  ],
+  "names": {"Rate": "'Rates 2026'!$C$2"}
+}

@@ -1,0 +1,428 @@
+<!-- Generated from Spredin Pro 1.0.4 (src/grid/functionGuide.ts) by tools/gen-refs.mts. Do not edit by hand. -->
+
+# Formula functions (Spredin Pro 1.0.4)
+
+389 functions.
+
+Search this file for a function name; do not read it whole. Each line: the signature, what
+it is for, and, when Spredin differs from Excel, how. In the app: Help → Formula Reference.
+
+## Rules for every function
+
+- **Numbers stored as text in a file are numbers.** A cell that a file stores as text but that holds an ordinary number, such as 1200, counts as that number: it adds up in SUM and is found by a lookup. Excel leaves such cells out. This is on purpose, because a column of amounts that adds up to 0 is the most common surprise in Excel. Text you mark as text yourself stays text: a leading apostrophe ('12), leading zeros (007) or more than 15 digits.
+- **Empty cells and empty text.** An empty cell counts as 0 in arithmetic and is left out by SUM, AVERAGE and the like. A cell whose formula gives "" is text, not 0, also inside a range: =A1+1 is #VALUE! for it, and so is its item of A1:A9*B1:B9, while A1:A9>3 is TRUE for it, as text comes after every number. All as in Excel.
+- **Comparing values of different kinds.** In =, <, > and the rest, every number comes before every piece of text, and text before FALSE and TRUE; values of two kinds are never equal, so ="5"=5 is FALSE. An empty cell matches 0, "" or FALSE. One exception keeps the first rule working: a number read from a cell is compared with text that looks like a number by its digits, so A1="5" is TRUE when A1 holds 5.
+- **Capital letters.** Text is compared without regard to capitals: in =, in lookups, in COUNTIF and SUMIF, in sorting. EXACT and FIND are the ones that tell "East" from "east".
+- **Errors pass through.** An error in an argument becomes the function's answer, unless catching it is the function's job (IFERROR, IFNA, ISERROR and the other IS functions, AGGREGATE with an option that skips errors).
+- **Dates are numbers.** A date is the number of days since 1 January 1900, as in Excel, and a time is a fraction of a day; a date format only changes how the number looks. A date typed with slashes is read the way your Mac's region writes dates.
+- **Results with several values.** Spredin does not yet spread a result with several values into the cells beside it. The cell shows the first value, and the whole result can be used inside another function: =SUM(SEQUENCE(4)) is 10, =INDEX(SORT(A1:A9),2) the second smallest.
+
+## Maths
+
+- `ABS(number)` Gives the size of a number without its minus sign, so −5 and 5 both become 5.
+- `ACOS(number)` Finds the angle whose cosine is the number you give; the answer is in radians.
+- `ACOSH(number)` Undoes COSH: finds the number whose hyperbolic cosine is the one you give.
+- `AGGREGATE(function_num, options, ref, [k])` Totals, counts or ranks a range while skipping errors, hidden rows or other subtotals, as you choose. Excel: Microsoft’s page lists the second number from 0 to 7. Spredin takes any other second number as 4 and leaves nothing out, so AGGREGATE(9,8,A1:A3) is a plain sum.
+- `ARABIC(roman_text)` Turns Roman numerals written as text, such as MCMXCIV, back into an ordinary number.
+- `ASIN(number)` Finds the angle whose sine is the number you give; the answer is in radians.
+- `ASINH(number)` Undoes SINH: finds the number whose hyperbolic sine is the one you give.
+- `ATAN(number)` Finds the angle whose tangent is the number you give, such as the angle of a slope; in radians.
+- `ATAN2(x, y)` Finds the angle of a point seen from the origin, given how far across and up it is; in radians.
+- `ATANH(number)` Undoes TANH: finds the number whose hyperbolic tangent is the one you give.
+- `CEILING(number, significance)` Rounds a number up to the next multiple of a step you choose, such as the next 5 cents.
+- `CEILING.MATH(number, [significance], [mode])` Rounds a number up to the next multiple of a step, with simpler sign rules than CEILING.
+- `CEILING.PRECISE(number, [significance])` Always rounds a number up to a multiple of a step, whatever the signs of the number and the step.
+- `COMBIN(n, k)` Counts how many different groups of a given size can be picked from a set, when order does not matter.
+- `COMBINA(n, k)` Counts the groups of a given size you can pick from a set when the same item may be picked again. Excel: Microsoft’s page gives #NUM! when the group is larger than the set; Spredin counts those groups, so COMBINA(2,5) is 6.
+- `COS(radians)` Gives the cosine of an angle, used to work out how far across a slope reaches; the angle is in radians.
+- `COSH(number)` Gives the hyperbolic cosine, which describes the curve of a chain hanging between two posts.
+- `COT(radians)` Gives the cotangent of an angle, which is 1 divided by its tangent; the angle is in radians.
+- `CSC(radians)` Gives the cosecant of an angle, which is 1 divided by its sine; the angle is in radians.
+- `DEGREES(radians)` Turns an angle in radians into degrees, such as π radians into 180°.
+- `EVEN(number)` Rounds a number away from zero to the next even whole number.
+- `EXP(number)` Raises e, the number about 2.718 behind steady growth, to the power you give.
+- `FACT(number)` Multiplies all the whole numbers from 1 up to the one you give, such as 4 × 3 × 2 × 1.
+- `FACTDOUBLE(number)` Multiplies a number by every second whole number below it, such as 7 × 5 × 3 × 1. Excel: Microsoft’s page gives #NUM! for every negative number; Spredin gives 1 for −1, as mathematics does.
+- `FLOOR(number, significance)` Rounds a number down to a multiple of a step you choose, such as the quarter-hour below.
+- `FLOOR.MATH(number, [significance], [mode])` Rounds a number down to a multiple of a step, with simpler sign rules than FLOOR.
+- `FLOOR.PRECISE(number, [significance])` Always rounds a number down to a multiple of a step, whatever the signs of the number and the step.
+- `GCD(number1, [number2], …)` Finds the largest whole number that divides every number given without a remainder. Excel: Microsoft’s page gives #VALUE! for any value that is not a number; Spredin skips text, so GCD("a",4) is 4. Microsoft’s page also gives #NUM! for a number of 2^53 (about 9 million billion) or more; Spredin works out the answer.
+- `INT(number)` Drops the fraction to leave a whole number, always rounding down, so −8.9 becomes −9.
+- `ISO.CEILING(number, [significance])` Rounds a number up to a multiple of a step, always upward, under its international-standard name.
+- `LCM(number1, [number2], …)` Finds the smallest whole number that every number given divides into evenly. Excel: Microsoft’s page gives #VALUE! for any value that is not a number; Spredin skips text and counts TRUE in a cell as 1, so LCM(A1,4) with TRUE in A1 is 4. Microsoft’s page also gives #NUM! when the answer is 2^53 (about 9 million billion) or more; Spredin gives the number, which may be off in its last digits.
+- `LN(number)` Gives the natural logarithm: the power you raise e (about 2.718) to, to get the number.
+- `LOG(number, [base])` Gives the power a base must be raised to, to reach a number, such as 3 for 1,000 in base 10.
+- `LOG10(number)` Gives the power of 10 that makes the number, such as 3 for 1,000 and −2 for 0.01.
+- `MOD(number, divisor)` Gives the remainder left over after dividing one number by another.
+- `MROUND(number, multiple)` Rounds a number to the nearest multiple of a step, such as the nearest 15 minutes.
+- `MULTINOMIAL(number, …)` Counts the ways to split a set into groups of given sizes, such as 9 people into teams of 2, 3 and 4. Excel: Excel gives #VALUE! for text typed into the list, which Spredin skips.
+- `ODD(number)` Rounds a number away from zero to the next odd whole number.
+- `PERMUT(n, k)` Counts how many ways items can be picked from a set when the order they are picked in matters. Excel: Microsoft’s page gives #NUM! for a set of 0 items; Spredin gives 1 for PERMUT(0,0), the one way to pick nothing.
+- `PI()` Gives the number π, about 3.14159, used for circles and angles.
+- `POWER(number, power)` Raises a number to a power, such as 2 to the power 10, the same as writing 2^10.
+- `QUOTIENT(numerator, denominator)` Gives the whole-number part of a division, without the remainder.
+- `RADIANS(degrees)` Turns an angle in degrees into radians, the unit that SIN, COS and TAN expect.
+- `RAND()` Draws a random number from 0 up to, but not including, 1.
+- `RANDARRAY([rows], [columns], [min], [max], [whole_number])` Makes a block of random numbers of the size you choose, optionally whole numbers between two limits.
+- `RANDBETWEEN(low, high)` Picks a random whole number between two limits, such as a dice roll from 1 to 6.
+- `ROMAN(number)` Writes a number as Roman numerals, such as 2026 as MMXXVI.
+- `ROUND(number, num_digits)` Rounds a number to the number of decimal places you choose.
+- `ROUNDDOWN(number, num_digits)` Cuts a number toward zero at the decimal place you choose, so 7.89 to 1 place becomes 7.8.
+- `ROUNDUP(number, num_digits)` Rounds a number away from zero to the decimal places you choose, so 3.141 to 2 places becomes 3.15.
+- `SEC(radians)` Gives the secant of an angle, which is 1 divided by its cosine; the angle is in radians.
+- `SERIESSUM(x, n, m, coefficients)` Adds up a power series: each coefficient times x raised to a power that grows by a fixed step.
+- `SIGN(number)` Tells whether a number is positive, negative or zero, as 1, −1 or 0.
+- `SIN(radians)` Gives the sine of an angle, used to work out heights and waves; the angle is in radians.
+- `SINH(number)` Gives the hyperbolic sine, a growth curve used in engineering and physics formulas.
+- `SQRT(number)` Finds the square root: the number that, multiplied by itself, gives the one you start with.
+- `SQRTPI(number)` Gives the square root of a number multiplied by π, a quantity that turns up in statistics formulas.
+- `SUBTOTAL(function_num, range, …)` Totals, counts or averages a list while leaving out rows that a filter has hidden.
+- `TAN(radians)` Gives the tangent of an angle: how much a slope rises for each step across; the angle is in radians.
+- `TANH(number)` Gives the hyperbolic tangent, an S-shaped curve that squeezes any number into the range −1 to 1.
+- `TRUNC(number, [digits])` Cuts off the fraction of a number, or keeps only the decimal places you choose, without rounding.
+
+## Logic and lookup
+
+- `AND(logical1, [logical2], …)` Checks whether every one of several conditions is true. Excel: Microsoft’s page passes over text and empty cells in any reference. Spredin does so in a range, but reads a cell named on its own as its value, so AND(A1,TRUE) with A1 empty is FALSE here; write the cell as a range, AND(A1:A1,TRUE), to pass it over. Spredin also reads empty text ("") as FALSE.
+- `AVERAGEIF(range, criteria, [avg_range])` Averages only the numbers whose row meets a condition you set. Excel: On purpose: over a linked workbook that is not open, Spredin works from the values kept with the link.
+- `AVERAGEIFS(avg_range, range1, crit1, …)` Averages the numbers whose row meets every one of several conditions. Excel: On purpose: over a linked workbook that is not open, Spredin works from the values kept with the link.
+- `CELL(info_type, [reference])` Tells you something about a cell, such as its address, row, column or the kind of value it holds. Excel: Microsoft’s page lists more kinds, such as "format", "width" and "prefix", which give #VALUE! here. "filename" gives the [book]Sheet shape without the folder, naming the sheet the formula is on, also before the file is saved; Microsoft’s page gives the full path of the file that holds the reference, and empty text before it is saved. With no reference, Microsoft’s page says Excel answers about the cell selected at the time of calculation; Spredin answers about the formula's own cell. Microsoft’s page gives "type" b only for an empty cell; Spredin also gives b for a cell whose formula gave "".
+- `CHOOSE(index, val1, val2, …)` Picks one value from a list by its position number.
+- `COUNTIF(range, criteria)` Counts the cells in a range that meet one condition you set. Excel: On purpose: over a linked workbook that is not open, Spredin counts from the values kept with the link, where Excel gives #VALUE!.
+- `COUNTIFS(range1, crit1, …)` Counts the rows that meet every one of several conditions. Excel: On purpose: over a linked workbook that is not open, Spredin counts from the values kept with the link, where Excel gives #VALUE!.
+- `ERROR.TYPE(error)` Gives a code number for an error, so a formula can react to the kind of error. Excel: #CIRC! and #ERROR! are Spredin's own and do not exist in Excel. Microsoft’s page lists the codes 1 to 8 and #N/A for any other value; Spredin also gives 14 for #CALC!, and #N/A for the other newer errors, such as #SPILL!.
+- `FALSE()` Gives the logical value FALSE, for when you want it written as a function.
+- `IF(logical_test, value_if_true, [value_if_false])` Checks a condition and gives one answer if it is true and another if it is false. Excel: Spredin reads empty text ("") as a FALSE test, as it reads an empty cell, so IF("",1,2) is 2.
+- `IFERROR(value, value_if_error)` Shows a fallback of your choice when a formula gives any error, and the formula's answer otherwise.
+- `IFNA(value, fallback)` Shows a fallback when a formula gives #N/A, usually a lookup that found nothing.
+- `IFS(cond1, val1, cond2, val2, …)` Checks conditions in order and gives the answer paired with the first one that is true.
+- `ISBLANK(value)` Checks whether a cell is completely empty.
+- `ISERR(value)` Checks whether a value is an error other than #N/A.
+- `ISERROR(value)` Checks whether a formula's answer is an error of any kind, such as #DIV/0! or #N/A.
+- `ISEVEN(number)` Checks whether a number is even.
+- `ISFORMULA(reference)` Checks whether a cell holds a formula rather than a typed value.
+- `ISLOGICAL(value)` Checks whether a value is TRUE or FALSE.
+- `ISNA(value)` Checks whether a value is the #N/A error, the one lookups give when nothing is found.
+- `ISNONTEXT(value)` Checks whether a value is anything but text, an empty cell included.
+- `ISNUMBER(value)` Checks whether a cell or value holds a number, such as an amount or a date, rather than text.
+- `ISODD(number)` Checks whether a number is odd.
+- `ISREF(value)` Checks whether something is a reference to a cell or range, not just a value.
+- `ISTEXT(value)` Checks whether a cell or value holds text, rather than a number, TRUE/FALSE or an error.
+- `MAX(number1, [number2], …)` Finds the largest number in a list or range.
+- `MAXA(value1, ...)` Finds the largest value, counting TRUE as 1 and text or FALSE as 0.
+- `MAXIFS(max_range, range1, crit1, …)` Finds the largest number among the rows that meet every one of several conditions. Excel: On purpose: over a linked workbook that is not open, Spredin works from the values kept with the link.
+- `MDETERM(array)` Works out the determinant of a square table of numbers, a single number used in matrix work. Excel: Microsoft notes that Excel can give a tiny number such as 1E-16 instead of 0 for a table with no inverse; Spredin gives 0, and 0 too for a table whose numbers are all tiny, such as {1E-15,0;0,1E-15}. Microsoft’s page gives #VALUE! for any text in the table, even text that reads as a number; Spredin reads such text as that number.
+- `MIN(number1, [number2], …)` Finds the smallest number in a list or range.
+- `MINA(value1, ...)` Finds the smallest value, counting TRUE as 1 and text or FALSE as 0.
+- `MINIFS(min_range, range1, crit1, …)` Finds the smallest number among the rows that meet every one of several conditions. Excel: On purpose: over a linked workbook that is not open, Spredin works from the values kept with the link.
+- `MINVERSE(array)` Finds the inverse of a square table of numbers: the matrix that undoes it when multiplied. Excel: Microsoft notes that MINVERSE is worked out to about 16 digits, so a small rounding error can appear; Spredin gives #NUM! for a table that has no inverse, such as {1,2,3;4,5,6;7,8,9}. Microsoft’s page gives #VALUE! for any text in the table, even text that reads as a number; Spredin reads such text as that number.
+- `MMULT(array1, array2)` Multiplies two tables of numbers the way matrices are multiplied. Excel: Microsoft’s page gives #VALUE! for any text in the tables, even text that reads as a number; Spredin reads such text as that number, and TRUE and FALSE as 1 and 0.
+- `MUNIT(size)` Makes an identity matrix: a square of zeros with ones down the diagonal.
+- `N(value)` Turns a value into a number: numbers stay, TRUE becomes 1, and text or FALSE becomes 0. Excel: Same for a single value. Given a range of several cells, Spredin gives 0, so N(A1:A2) is 0 even when A1 holds 5.
+- `NA()` Gives the #N/A error on purpose, to mark a value as not available yet.
+- `NOT(logical)` Turns TRUE into FALSE and FALSE into TRUE. Excel: Spredin reads empty text ("") as FALSE, as it reads an empty cell, so NOT("") is TRUE.
+- `OR(logical1, [logical2], …)` Checks whether at least one of several conditions is true. Excel: Microsoft’s page passes over text and empty cells in any reference. Spredin does so in a range, but reads a cell named on its own as its value, so OR(A1,FALSE) with text in A1 is #VALUE! here; write the cell as a range, OR(A1:A1,FALSE), to pass it over.
+- `PRODUCT(number1, [number2], …)` Multiplies numbers together, whether typed in, in single cells or in whole ranges.
+- `SHEET([value])` Gives the position number of a sheet among the tabs, counting from the left.
+- `SHEETS([reference])` Counts the sheets in the workbook, or the sheets a reference spans.
+- `SUM(number1, [number2], …)` Adds up numbers, whether typed in, in single cells or in whole ranges.
+- `SUMIF(range, criteria, [sum_range])` Adds up only the numbers whose row meets a condition you set. Excel: On purpose: over a linked workbook that is not open, Spredin adds from the values kept with the link, where Excel gives #VALUE!.
+- `SUMIFS(sum_range, range1, crit1, …)` Adds up the numbers whose row meets every one of several conditions. Excel: On purpose: over a linked workbook that is not open, Spredin adds from the values kept with the link, where Excel gives #VALUE!.
+- `SUMPRODUCT(range1, range2, …)` Multiplies matching items in two or more ranges and adds up the results, like price times quantity.
+- `SUMSQ(number1, [number2], …)` Squares each number and adds up the squares.
+- `SUMX2MY2(array_x, array_y)` Adds up x² minus y² over two matching lists of numbers.
+- `SUMX2PY2(array_x, array_y)` Adds up x² plus y² over two matching lists of numbers.
+- `SUMXMY2(array_x, array_y)` Adds up the squared differences between two matching lists of numbers.
+- `SWITCH(expr, val1, res1, …, [default])` Compares one value with a list of possible values and gives the answer paired with the first match.
+- `TRANSPOSE(array)` Turns a range on its side, so rows become columns and columns become rows.
+- `TRUE()` Gives the logical value TRUE, for when you want it written as a function.
+- `TYPE(value)` Tells what kind of value something is: 1 number, 2 text, 4 TRUE/FALSE, 16 error, 64 array.
+- `XOR(logical1, …)` Checks whether an odd number of conditions are true, such as exactly one of two. Excel: Microsoft’s page passes over text and empty cells in any reference. Spredin does so in a range, but reads a cell named on its own as its value: an empty one counts as FALSE, and text in it gives #VALUE!, so XOR(A1,TRUE) with text in A1 is #VALUE! here. Write the cell as a range, XOR(A1:A1,TRUE), to pass it over.
+
+## Statistics
+
+- `AVEDEV(number, …)` Measures spread as the average distance of each number from the mean, ignoring direction.
+- `AVERAGE(number1, [number2], …)` Finds the typical value of a list: everything added up, divided by how many there are.
+- `AVERAGEA(value, …)` Averages a list where text counts as zero, such as scores with "absent" written in for a missed test.
+- `AVG(number1, [number2], …)` A shorter spelling of AVERAGE: the typical value of a list of numbers. Excel: Excel has no AVG: it is Spredin's own short name, and Excel does not know it. In a workbook you will open in Excel, use AVERAGE.
+- `CORREL(array1, array2)` Measures how closely two lists move together, from −1 (opposite ways) through 0 to 1 (in step).
+- `COUNT(value1, [value2], …)` Counts how many cells hold numbers, such as how many amounts have been filled in so far.
+- `COUNTA(value1, [value2], …)` Counts how many cells are not empty, whatever they hold: names, numbers, notes or errors.
+- `COUNTBLANK(range)` Counts the empty cells in a range, such as questions left unanswered on a form. Excel: Spredin does not count a cell holding only an apostrophe (') as blank.
+- `COVAR(array1, array2)` Measures whether two lists rise and fall together, in their own units, for a whole group.
+- `COVARIANCE.P(array1, array2)` Measures whether two lists rise and fall together, in their own units, for a whole group.
+- `COVARIANCE.S(array1, array2)` Measures whether two lists rise and fall together, in their own units, for a sample.
+- `DEVSQ(number, …)` Adds up how far each number is from the average, squared: the raw total behind variance.
+- `FISHER(x)` Stretches a correlation onto a scale where correlations can be averaged and tested fairly.
+- `FISHERINV(y)` Turns a Fisher-transformed value back into a correlation between −1 and 1.
+- `FORECAST(x, known_y, known_x)` Predicts a y value for a new x from the straight line that best fits the points you already have. Excel: Spredin takes one x at a time: a list of x values gives #VALUE!. TREND takes a list.
+- `FORECAST.LINEAR(x, known_y, known_x)` Predicts a y value for a new x from the straight line that best fits the points you already have. Excel: Spredin takes one x at a time: a list of x values gives #VALUE!. TREND takes a list.
+- `FREQUENCY(data, bins)` Counts how many values fall into each band, such as how many exam scores land in each grade range.
+- `GEOMEAN(number, …)` Finds the average rate when values multiply, such as the typical yearly growth of an investment. Excel: When the numbers multiplied together pass about 1E+308, the largest number a cell holds, Spredin gives #NUM!, even though the answer would fit: GEOMEAN(1E300,1E300) is #NUM! here.
+- `GROWTH(known_y, [known_x], [new_x], [const])` Predicts values from a trend of steady percentage growth, such as sales rising by a tenth each year. Excel: Spredin fits one x column only (several give #VALUE!).
+- `HARMEAN(number, …)` Finds the right average of rates such as speeds, where the plain average gives the wrong answer.
+- `INTERCEPT(known_y, known_x)` Gives where the best straight line through the points crosses the y axis: the value of y when x is 0.
+- `KURT(number, …)` Shows whether a list has more or fewer extreme values than a normal bell curve.
+- `LARGE(range, k)` Picks the largest, second largest or k-th largest number from a list, such as the top three scores.
+- `LINEST(known_y, [known_x], [const])` Fits the best straight line through points and gives its slope and where it crosses the y axis. Excel: Spredin fits one x column only (several give #VALUE!) and does not build the statistics block asked for with stats TRUE. A text cell in known_y or known_x is left out, which gives #REF! when the two no longer pair up.
+- `LOGEST(known_y, [known_x], [const])` Fits a curve of steady percentage growth through points, giving the growth factor and the start. Excel: Spredin fits one x column only (several give #VALUE!) and does not build the statistics block asked for with stats TRUE.
+- `MEDIAN(number1, …)` Finds the middle value of a list once it is sorted, so a few extreme values cannot pull it.
+- `MODE(number, …)` Finds the number that turns up most often in a list, such as the most common shoe size sold.
+- `MODE.SNGL(number1, …)` Finds the number that turns up most often in a list.
+- `PEARSON(array1, array2)` Measures how closely two lists move together, from −1 (opposite ways) through 0 to 1 (in step).
+- `PERCENTILE(range, k)` Finds the value below which a given share of a list falls, such as the 90th percentile of delivery times.
+- `PERCENTILE.EXC(array, k)` Finds the value below which a given share of a list falls, by a method that never reaches either end. Excel: Spredin takes one value of k at a time: a list of them gives #VALUE!. PERCENTILE.INC takes a list.
+- `PERCENTILE.INC(array, k)` Finds the value below which a given share of a list falls, with 0 and 1 meaning the ends.
+- `PERCENTRANK(array, x, [significance])` Says what share of a list lies below a value, as a fraction from 0 to 1. Excel: Spredin reads a significance left empty after its comma, as in PERCENTRANK(A1:A10,2,), as 0 and gives #NUM!; leave the comma out too for 3 digits.
+- `PERCENTRANK.EXC(range, x, [significance])` Says what share of a list lies below a value, as a fraction that is never exactly 0 or 1.
+- `PERCENTRANK.INC(array, x, [significance])` Says what share of a list lies below a value, as a fraction from 0 to 1. Excel: Spredin reads a significance left empty after its comma, as in PERCENTRANK(A1:A10,2,), as 0 and gives #NUM!; leave the comma out too for 3 digits.
+- `QUARTILE(array, quart)` Gives the value that marks off a quarter, a half or three quarters of a sorted list. Excel: Spredin cuts quart to a whole number first, so a quart between −1 and 0, such as −0.5, gives the smallest number.
+- `QUARTILE.EXC(array, quart)` Marks off a quarter, a half or three quarters of a sorted list, by a method some statistics courses teach. Excel: Spredin takes one value of quart at a time: a list of them gives #VALUE!. QUARTILE.INC takes a list.
+- `QUARTILE.INC(array, quart)` Gives the value that marks off a quarter, a half or three quarters of a sorted list. Excel: Spredin cuts quart to a whole number first, so a quart between −1 and 0, such as −0.5, gives the smallest number.
+- `RANK(number, range, [ascending])` Gives a number's place in a list, such as 1st, 2nd or 3rd, counting from the largest. Excel: Spredin counts from the largest when the third argument is text, such as "x".
+- `RANK.AVG(number, range, [ascending])` Gives a number's place in a list, with tied numbers sharing the average of their places.
+- `RANK.EQ(number, ref, [order])` Gives a number's place in a list, with tied numbers sharing the best place. Excel: Spredin counts from the largest when the third argument is text, such as "x".
+- `RSQ(known_y, known_x)` Says how well a straight line through the points fits them, from 0 (not at all) to 1 (perfectly).
+- `SKEW(number, …)` Shows whether a list leans to one side: positive when a few values trail far above the rest.
+- `SLOPE(known_y, known_x)` Gives how much y changes for each step of x along the best straight line through the points.
+- `SMALL(range, k)` Picks the smallest, second smallest or k-th smallest number from a list, such as the two lowest prices.
+- `STANDARDIZE(x, mean, sd)` Says how many standard deviations a value sits above or below the average: its z-score.
+- `STDEV(number1, …)` Measures how far numbers typically sit from their average, when they are a sample of a larger group.
+- `STDEV.P(number1, …)` Measures how spread out numbers are when they are the whole group, not just a sample of it.
+- `STDEV.S(number1, …)` Measures how far numbers typically sit from their average, when they are a sample of a larger group.
+- `STDEVA(value, …)` Measures the spread of a sample where TRUE counts as 1 and text as 0 rather than being left out.
+- `STDEVP(number1, …)` Measures how spread out numbers are when they are the whole group, not just a sample of it.
+- `STDEVPA(value, …)` Measures the spread of a whole group where TRUE counts as 1 and text as 0 rather than being left out.
+- `STEYX(known_y, known_x)` Measures how far the points typically sit from the best straight line through them.
+- `TREND(known_y, [known_x], [new_x], [const])` Predicts values from a straight-line trend through the points you already have. Excel: Spredin fits one x column only (several give #VALUE!).
+- `TRIMMEAN(array, percent)` Averages a list after dropping some of its highest and lowest values, so outliers cannot distort it. Excel: Spredin takes one value of percent at a time: a list of them gives #VALUE!.
+- `VAR(range)` Measures how spread out a sample of numbers is, in squared units: the square of STDEV.
+- `VAR.P(number1, …)` Measures the spread of a whole group of numbers, in squared units.
+- `VAR.S(number1, …)` Measures how spread out a sample of numbers is, in squared units.
+- `VARA(value, …)` Measures the spread of a sample in squared units, with TRUE counted as 1 and text as 0.
+- `VARP(number1, …)` Measures the spread of a whole group of numbers, in squared units: the square of STDEVP.
+- `VARPA(value, …)` Measures the spread of a whole group in squared units, with TRUE counted as 1 and text as 0.
+
+## Distributions
+
+- `BINOM.DIST(number_s, trials, probability_s, cumulative)` Gives the chance of exactly (or at most) a given number of successes in a fixed number of yes/no tries.
+- `BINOM.INV(trials, probability_s, alpha)` Finds the smallest number of successes k such that the chance of k or fewer reaches a target probability.
+- `BINOMDIST(number_s, trials, probability_s, cumulative)` Gives the chance of exactly or at most k successes in n yes/no tries (the older spelling).
+- `CHIDIST(x, deg_freedom)` Gives the p-value of a chi-square statistic (the older spelling of CHISQ.DIST.RT).
+- `CHIINV(probability, deg_freedom)` Finds the critical chi-square value for a right-tail probability (the older spelling of CHISQ.INV.RT).
+- `CHISQ.DIST(x, deg_freedom, cumulative)` Gives the chance that a chi-square statistic falls below x, or the curve's height there.
+- `CHISQ.DIST.RT(x, deg_freedom)` Gives the p-value of a chi-square statistic: the chance of a value at least this large.
+- `CHISQ.INV(probability, deg_freedom)` Finds the chi-square value with a given share of the distribution below it.
+- `CHISQ.INV.RT(probability, deg_freedom)` Finds the critical chi-square value: the one with a given share of the distribution above it.
+- `CHISQ.TEST(actual_range, expected_range)` Tests whether the counts you observed differ from the counts you expected by more than chance. Excel: Microsoft’s page gives #N/A when the two ranges hold different numbers of cells. Spredin also gives #N/A for two ranges of different shapes that hold the same number of cells, such as a 2×2 table against a row of four.
+- `CHITEST(actual_range, expected_range)` Tests whether observed counts differ from expected counts by more than chance (the older spelling). Excel: As for CHISQ.TEST: Spredin also gives #N/A for two ranges of different shapes that hold the same number of cells.
+- `CONFIDENCE(alpha, standard_dev, size)` Gives a normal margin of error (±) for a sample average; the older spelling of CONFIDENCE.NORM.
+- `CONFIDENCE.NORM(alpha, standard_dev, size)` Gives the margin of error (±) for a sample average when the population's standard deviation is known.
+- `CONFIDENCE.T(alpha, standard_dev, size)` Gives the margin of error (±) for a sample average when the population's spread is unknown.
+- `CRITBINOM(trials, probability_s, alpha)` Finds the smallest number of successes whose cumulative chance reaches a target (the older spelling).
+- `EXPON.DIST(x, lambda, cumulative)` Gives the chance that a waiting time is shorter than x, when events happen at a steady average rate.
+- `EXPONDIST(x, lambda, cumulative)` Gives the chance that a waiting time is shorter than x at a steady average rate (the older spelling).
+- `F.DIST(x, deg_freedom1, deg_freedom2, cumulative)` Gives the chance that an F ratio falls below x, or the F curve's height there.
+- `F.DIST.RT(x, deg_freedom1, deg_freedom2)` Gives the p-value of an F ratio: the chance of a ratio at least this large, as in ANOVA.
+- `F.INV(probability, deg_freedom1, deg_freedom2)` Finds the F value with a given share of the F distribution below it.
+- `F.INV.RT(probability, deg_freedom1, deg_freedom2)` Finds the critical F value: the one with a given share of the F distribution above it.
+- `F.TEST(array1, array2)` Tests whether two groups are equally spread out, or one varies more than chance would explain.
+- `FDIST(x, deg_freedom1, deg_freedom2)` Gives the right-tail p-value of an F ratio (the older spelling of F.DIST.RT).
+- `FINV(probability, deg_freedom1, deg_freedom2)` Finds the critical F value for a right-tail probability (the older spelling of F.INV.RT).
+- `FTEST(array1, array2)` Tests whether two groups are equally spread out; the older spelling of F.TEST.
+- `LOGINV(probability, mean, standard_dev)` Finds the value with a given share of a log-normal distribution below it (the older spelling).
+- `LOGNORM.DIST(x, mean, standard_dev, cumulative)` Gives the chance a value is below x for skewed amounts such as incomes, whose logarithm follows a bell curve.
+- `LOGNORM.INV(probability, mean, standard_dev)` Finds the value with a given share of a log-normal distribution below it.
+- `LOGNORMDIST(x, mean, standard_dev)` Gives the chance a value is below x when its logarithm is normally distributed (the older form).
+- `NORM.DIST(x, mean, sd, cumulative)` Gives the chance that a value on a bell curve (a normal distribution) is below x, or the curve's height there.
+- `NORM.INV(p, mean, sd)` Finds the value with a given share of a normal distribution below it, such as the cut-off for the top 10%.
+- `NORM.S.DIST(z, cumulative)` Gives the chance that a z-score falls below a point on the standard bell curve, or the curve's height.
+- `NORM.S.INV(p)` Finds the z-score with a given share of the standard bell curve below it, such as 1.96 for 97.5%.
+- `NORMDIST(x, mean, sd, cumulative)` Gives the chance a normally distributed value falls below a point; the older spelling of NORM.DIST.
+- `NORMINV(p, mean, sd)` Finds the value with a given share of a normal distribution below it; the older spelling of NORM.INV.
+- `NORMSDIST(z)` Gives the chance that a z-score falls below a point on the standard bell curve (the older form).
+- `NORMSINV(p)` Finds the z-score with a given share of the standard bell curve below it (the older spelling).
+- `POISSON(x, mean, cumulative)` Gives the chance of exactly (or at most) a count of events at a known average rate (the older spelling).
+- `POISSON.DIST(x, mean, cumulative)` Gives the chance of exactly (or at most) a number of events when they happen at a known average rate.
+- `T.DIST(x, deg_freedom, cumulative)` Gives the chance that a t statistic, from a small-sample test, falls below x, or the t curve's height there.
+- `T.DIST.2T(x, deg_freedom)` Gives the two-tailed p-value of a t statistic: the chance of a value at least this far from 0 either way.
+- `T.DIST.RT(x, deg_freedom)` Gives the one-tailed p-value of a t statistic: the chance of a value at least this large.
+- `T.INV(probability, deg_freedom)` Finds the t value with a given share of the t distribution below it.
+- `T.INV.2T(probability, deg_freedom)` Finds the critical t value for a confidence interval, such as about 2.045 for 95% with 30 values.
+- `T.TEST(array1, array2, tails, type)` Tests whether two groups' averages differ by more than chance would explain.
+- `TDIST(x, deg_freedom, tails)` Gives the one- or two-tailed p-value of a t statistic, in the form older workbooks use.
+- `TINV(probability, deg_freedom)` Finds the critical t value for a two-tailed test or interval; the older spelling of T.INV.2T.
+- `TTEST(array1, array2, tails, type)` Tests whether two groups' averages differ by more than chance; the older spelling of T.TEST.
+- `Z.TEST(array, x, [sigma])` Tests whether a sample's average is higher than a claimed value, giving a one-tailed p-value.
+- `ZTEST(array, x, [sigma])` Tests whether a sample's average is above a claimed value (the older spelling of Z.TEST).
+
+## Text
+
+- `ADDRESS(row, col, [abs], [a1], [sheet])` Builds a cell address as text, such as $C$2, from a row number and a column number. Excel: Same within the size of an Excel sheet, which ends at row 1,048,576. For a row past that, Spredin writes the address, as its sheets can be larger.
+- `ANCHORARRAY(anchor)` Gives the whole list that a formula in another cell returns, such as everything a SEQUENCE or UNIQUE makes.
+- `ARRAYTOTEXT(array, [format])` Writes a whole range or list of values as one piece of text, to show or check what it holds.
+- `CHAR(number)` Gives the character with a given code number, such as CHAR(10) for a line break inside a cell. Excel: Same for codes 1 to 127. For 128 to 255 Excel uses the older character set of the computer (the Mac one in Excel for Mac, the Windows one in Excel for Windows) where Spredin uses Unicode, so the same code can give a different character.
+- `CLEAN(text)` Removes invisible control characters, such as line breaks and tabs, from pasted or imported text.
+- `CODE(text)` Gives the code number of the first character of a piece of text. Excel: Same for the letters, digits and punctuation of plain English (codes up to 127). For other characters Excel gives the number in the older character set of the computer (the Mac one in Excel for Mac, the Windows one in Excel for Windows), so the numbers can differ: the euro sign is 8364 here and 128 in Excel for Windows.
+- `COLUMN([reference])` Gives the column number of a cell (A is 1, B is 2), or of the cell the formula itself is in.
+- `COLUMNS(range)` Counts how many columns a range or list has. Excel: Same as Excel, a whole row included.
+- `CONCAT(text1, [text2], …)` Joins pieces of text, numbers and whole ranges into one piece of text. Excel: Same, except that Excel gives #VALUE! when the result would be longer than 32,767 characters; Spredin has no such limit.
+- `CONCATENATE(text1, [text2], …)` Joins several pieces of text into one; the older name for what CONCAT does. Excel: Same for single values. Given a range, Spredin joins all its cells as CONCAT does. Microsoft's page names a text value, a number or a cell reference for each item, and points to CONCAT instead, so use CONCAT or TEXTJOIN to join a range in a workbook meant for Excel.
+- `CONCATENATEX(text1, [text2], …)` Puts pieces of text, numbers and ranges together into one piece of text, the same way CONCAT does. Excel: Excel has no CONCATENATEX function and shows #NAME? for it; use CONCAT in a workbook that will be opened in Excel.
+- `DOLLAR(number, [decimals])` Rounds a number and writes it as text in a currency format with a dollar sign. Excel: Microsoft’s page says the currency symbol depends on your language settings; Spredin always writes a dollar sign, in the page’s format $#,##0.00_);($#,##0.00), so a negative amount is in brackets.
+- `ENCODEURL(text)` Makes text safe to put inside a web address, turning spaces into %20 and so on. Excel: Same as Excel for Windows. Excel for Mac and Excel for the web do not have ENCODEURL.
+- `EXACT(a, b)` Checks whether two pieces of text are exactly the same, capitals included.
+- `FIND(needle, text, [start])` Gives the position of one piece of text inside another, matching capitals exactly.
+- `FIXED(number, [decimals], [no_commas])` Rounds a number and writes it as text with a set number of decimals and thousands commas.
+- `FORMULATEXT(reference)` Shows the formula in another cell as text, so you can display or check how a figure is worked out.
+- `HLOOKUP(lookup, table, row_index, [range_lookup])` Finds a value in the top row of a table and gives back something from the same column.
+- `HYPERLINK(link, [friendly_name])` Shows a link in a cell with friendly words, such as "Monthly report" in place of a long web address. Excel: In Excel the cell becomes a link that opens the address when clicked. Spredin shows the same text, but the link is not followed yet.
+- `INDEX(range, row_num, [col_num])` Gives the value at a given row and column inside a range, often with MATCH finding the position. Excel: Two differences. Given only a row number on a block several rows and columns wide, Microsoft’s page gives that whole row; Spredin gives the first cell of that row, so write the column too, or 0 for the whole row. And a whole row or column (0) alone in a cell shows #VALUE! here, where Excel shows all of it; inside SUM and the like the two agree.
+- `INDIRECT(ref_text, [a1])` Turns text such as "B3" or "Sheet2!A1" into a reference, so a formula can build the address it reads. Excel: Same inside other functions. An INDIRECT of several cells alone in a cell shows #VALUE! here, where Excel shows them all.
+- `JOIN(text1, [text2], …)` Puts pieces of text, numbers and ranges together into one piece of text, exactly as CONCAT does. Excel: Excel has no JOIN function and shows #NAME? for it. Use CONCAT, or TEXTJOIN for a separator, in a workbook that will be opened in Excel.
+- `LEFT(text, [num_chars])` Takes the first few characters of a piece of text, such as the prefix of a product code.
+- `LEN(text)` Counts the characters in a piece of text, spaces included.
+- `LOOKUP(value, vector, [result_vector])` Finds a value in a sorted list and gives back the item in the same position of another list.
+- `LOWER(text)` Changes all the letters in a piece of text to small letters, for example to tidy email addresses.
+- `MATCH(lookup, range, [match_type])` Gives the position of a value in a row or column, such as which row holds a name.
+- `MID(text, start_num, num_chars)` Takes characters from the middle of a piece of text, starting at a position you choose.
+- `NUMBERVALUE(text, [decimal_separator], [group_separator])` Turns text into a number when it was written with other separators, such as 1.234,56 from Europe. Excel: When you leave the separators out, Excel uses the separators of your region settings; Spredin always uses a full stop for decimals and a comma for thousands. Spredin also reads text such as 0x10 as 16, a number written in hexadecimal.
+- `OFFSET(reference, rows, cols, [height], [width])` Gives the cell or range a set number of rows and columns away from a starting point. Excel: Same inside other functions. Microsoft’s page asks for a height and width above 0; Spredin gives #REF! for 0 or less, so SUM(OFFSET(B2,0,0,-2,1)) is #REF!. An OFFSET of several cells alone in a cell shows #VALUE! here, where Excel shows them all.
+- `PROPER(text)` Capitalises the first letter of each word and makes the rest small, for tidying names.
+- `REPLACE(old, start, len, new)` Swaps out the characters at a given position in a piece of text for other text.
+- `REPT(text, count)` Repeats a piece of text a number of times, for example to draw a simple bar from characters. Excel: Same, except that Excel gives #VALUE! when the result would be longer than 32,767 characters; Spredin has no such limit.
+- `RIGHT(text, [num_chars])` Takes the last few characters of a piece of text, such as the number at the end of a code.
+- `ROW([reference])` Gives the row number of a cell, or of the cell the formula itself is in.
+- `ROWS(range)` Counts how many rows a range or list has. Excel: Same as Excel, a whole column included. A sheet opened from a file that holds more rows than Excel allows counts the rows it holds.
+- `SEARCH(needle, text, [start])` Gives the position of one piece of text inside another, ignoring capitals.
+- `SUBSTITUTE(text, old, new, [instance_num])` Replaces every copy of one piece of text with another, such as taking the dashes out of phone numbers.
+- `T(value)` Gives back a value only if it is text, and empty text for anything else. Excel: Same for a single value. Given a range of several cells, Spredin gives empty text, so T(A1:A2) is empty even when A1 holds "a".
+- `TEXT(value, format)` Shows a number or date as text in a format you choose, for labels and sentences built from figures.
+- `TEXTAFTER(text, delimiter, [instance_num], [match_mode], [match_end], [if_not_found])` Gives the part of a piece of text that comes after a separator, such as a file extension.
+- `TEXTBEFORE(text, delimiter, [instance_num], [match_mode], [match_end], [if_not_found])` Gives the part of a piece of text that comes before a separator, such as the name in an email address.
+- `TEXTJOIN(delim, ignore_empty, …)` Joins a list of values with a separator between them, such as names separated by commas. Excel: Same, except that Excel gives #VALUE! when the result would be longer than 32,767 characters; Spredin has no such limit. Spredin also reads an error as the second argument as FALSE, so TEXTJOIN(",",NA(),"a","b") is a,b.
+- `TEXTSPLIT(text, col_delimiter, [row_delimiter], [ignore_empty], [match_mode], [pad_with])` Splits a piece of text into pieces at a separator, such as a list of names separated by commas.
+- `TRIM(text)` Removes extra spaces: those at the start and end, and all but one between words.
+- `UNICHAR(number)` Gives the character with a given Unicode number, such as a symbol or an emoji.
+- `UNICODE(text)` Gives the Unicode number of the first character of a piece of text.
+- `UPPER(text)` Changes all the letters in a piece of text to capitals.
+- `VALUE(text)` Turns text that looks like a number, amount, percentage, date or time into a real number. Excel: Same for text. Given TRUE, Spredin gives 1.
+- `VALUETOTEXT(value, [format])` Writes any single value as text, with quotes round text if you ask, as in a formula.
+- `VLOOKUP(lookup, table, col_index, [range_lookup])` Finds a value in the first column of a table and gives back something from the same row. Excel: Spredin's exact match for TRUE also finds a cell holding the text "TRUE".
+- `XLOOKUP(lookup, lookup_array, return_array, [if_not_found], [match_mode], [search_mode])` Looks up a value in one column or row and gives back the matching item from another.
+- `XMATCH(lookup, array, [match_mode], [search_mode])` Gives the position of a value in a row or column, with an exact match unless you ask otherwise. Excel: Over a block several rows and columns wide, Spredin searches the block row by row.
+
+## Dates and times
+
+- `CUMIPMT(rate, nper, pv, start, end, [type])` Adds up the interest paid on a loan between two payments, such as over one year.
+- `CUMPRINC(rate, nper, pv, start, end, [type])` Adds up how much of a loan is paid off between two payments, such as over one year.
+- `DATE(year, month, day)` Builds a date from a year, a month and a day, so other formulas can work with it.
+- `DATEDIF(start, end, "Y"|"M"|"D"|"YM"|"MD"|"YD")` Counts the whole years, months or days between two dates, as for an age or a length of service.
+- `DATEVALUE(text)` Turns a date written as text into a real date that formulas can work with.
+- `DAY(serial)` Picks the day of the month out of a date, from 1 to 31.
+- `DAYS(end, start)` Counts the days from one date to another.
+- `DAYS360(start, end, [method])` Counts the days between two dates as if every month had 30 days, as some accounts do. Excel: Spredin reads dates in January and February 1900 a day early, so DAYS360(DATE(1900,1,1),DATE(1900,3,1)) is 61 here.
+- `DB(cost, salvage, life, period, [month])` Works out depreciation that takes the same share of the remaining value each year. Excel: For a month below 1 or above 12, Spredin works out a number; give a month from 1 to 12.
+- `DDB(cost, salvage, life, period, [factor])` Works out fast depreciation that takes twice the straight-line share of what is left each period.
+- `DOLLARDE(fractional_dollar, fraction)` Turns a price written in fractions, such as a bond price in 32nds, into an ordinary decimal.
+- `DOLLARFR(decimal_dollar, fraction)` Writes a decimal price in fractions, such as 32nds, the way bond prices are quoted.
+- `EDATE(serial, months)` Gives the same day of the month a number of months before or after a date.
+- `EFFECT(nominal_rate, npery)` Turns a yearly interest rate compounded several times a year into the rate it really earns.
+- `EOMONTH(start, months)` Gives the last day of the month a number of months before or after a date.
+- `FV(rate, nper, pmt, [pv], [type])` Works out what regular savings, and a starting sum, will be worth after a number of periods.
+- `FVSCHEDULE(principal, rates)` Grows a starting sum through a list of different interest rates, one after another.
+- `HOUR(serial)` Picks the hour out of a time, from 0 to 23.
+- `IPMT(rate, per, nper, pv, [fv], [type])` Works out how much of one loan payment is interest.
+- `IRR(values, [guess])` Finds the return an investment earns each period, from money paid out and received at regular intervals. Excel: Same to many decimal places; the last digits can differ, as both stop once close enough and Spredin rounds to 10 decimal places. Excel gives up after 20 tries, while Spredin keeps searching, so it can find a rate where Excel shows #NUM!.
+- `ISOWEEKNUM(serial)` Gives the week number by the international ISO rule, used for business weeks in much of Europe.
+- `ISPMT(rate, per, nper, pv)` Works out one period's interest on a loan that is paid off in equal parts of the amount borrowed.
+- `MINUTE(serial)` Picks the minutes out of a time, from 0 to 59.
+- `MIRR(values, finance_rate, reinvest_rate)` Finds the return per period of an investment when borrowing and reinvesting happen at different rates. Excel: Same to 10 decimal places, where Spredin rounds its answer.
+- `MONTH(serial)` Picks the month out of a date, as a number from 1 for January to 12 for December.
+- `NETWORKDAYS(start, end, [holidays])` Counts the working days between two dates, leaving out weekends and any holidays you list. Excel: Microsoft’s page gives #VALUE! when any argument is not a valid date; Spredin passes over a holiday it cannot read as a date.
+- `NETWORKDAYS.INTL(start, end, [weekend], [holidays])` Counts working days between two dates when the weekend is not Saturday and Sunday. Excel: Microsoft’s page gives #VALUE! for a weekend string that is not seven characters long; Spredin reads digit text of another length, such as "000001", as a weekend number.
+- `NOMINAL(effect_rate, npery)` Turns the rate a deposit really earns into the yearly rate quoted when interest is added several times a year.
+- `NOW()` Gives the current date and time, updated each time the workbook is worked out again.
+- `NPER(rate, pmt, pv, [fv], [type])` Works out how many payments it takes to pay off a loan or to reach a savings goal. Excel: When the payment is exactly the interest, so the loan never shrinks, Spredin gives #DIV/0!.
+- `NPV(rate, value1, …)` Works out what money paid or received in later periods is worth today, to judge an investment.
+- `PDURATION(rate, pv, fv)` Works out how many periods it takes for money to grow to a target at a fixed rate.
+- `PMT(rate, nper, pv, [fv], [type])` Works out the regular payment on a loan with a fixed interest rate. Excel: Microsoft’s page asks for 0 or 1 as the last argument. Spredin uses the number itself, so 2 or -1 gives another answer: give 0 or 1.
+- `PPMT(rate, per, nper, pv, [fv], [type])` Works out how much of one loan payment goes to paying off the amount borrowed.
+- `PV(rate, nper, pmt, [fv], [type])` Works out what a series of future payments is worth today, at a given interest rate.
+- `RATE(nper, pmt, pv, [fv], [type], [guess])` Finds the interest rate per period of a loan or an investment from its payments. Excel: Same to many decimal places; the last digits can differ, as Spredin rounds to 10 decimal places. Excel gives up when 20 tries do not settle, while Spredin keeps searching, so it can find a rate where Excel shows #NUM!.
+- `RRI(nper, pv, fv)` Finds the steady growth rate per period that turns a starting value into an end value.
+- `SECOND(serial)` Picks the seconds out of a time, from 0 to 59.
+- `SLN(cost, salvage, life)` Spreads an asset's fall in value evenly over its useful life, the same amount each year.
+- `SYD(cost, salvage, life, per)` Works out depreciation that is largest in the first year and smaller each year after.
+- `TIME(hour, minute, second)` Builds a time of day from hours, minutes and seconds.
+- `TIMEVALUE(text)` Turns a time written as text into a time that formulas can work with.
+- `TODAY()` Gives today's date, which moves on by itself each day.
+- `WEEKDAY(serial, [type])` Tells which day of the week a date falls on, as a number.
+- `WEEKNUM(serial, [type])` Tells which week of the year a date falls in. Excel: Spredin reads dates in January and February 1900 a day early, so WEEKNUM(DATE(1900,1,1)) is 53 here.
+- `WORKDAY(start, days, [holidays])` Gives the date a number of working days after or before a start date, skipping weekends and holidays.
+- `WORKDAY.INTL(start, days, [weekend], [holidays])` Gives the date a number of working days away when the weekend is not Saturday and Sunday. Excel: Microsoft’s page gives #VALUE! for a weekend string that is not seven characters long; Spredin reads digit text of another length, such as "000001", as a weekend number.
+- `XIRR(values, dates, [guess])` Finds the yearly return of an investment whose money is paid out and received on irregular dates. Excel: Same to many decimal places. Excel gives up after 100 tries, while Spredin keeps searching, so it can find a rate where Excel shows #NUM!. Microsoft says Excel refuses a date before the first one with #NUM! and drops any time of day from the dates; Spredin does neither.
+- `XNPV(rate, values, dates)` Works out today's value of money paid or received on irregular dates. Excel: Same for dates with no time of day. Microsoft’s page says Excel drops any time of day from the dates first; Spredin counts it, so the answer moves a little when the dates carry times.
+- `YEAR(serial)` Picks the year out of a date.
+- `YEARFRAC(start, end, [basis])` Gives the part of a year between two dates, such as 0.5 for six months.
+
+## More
+
+- `BASE(number, radix, [min_length])` Writes a whole number in any base from 2 to 36, using letters for the digits past 9.
+- `BIN2DEC(binary)` Turns a binary number, written in 1s and 0s, back into an ordinary number. Excel: Spredin ignores spaces around the digits, so BIN2DEC(" 101") is 5.
+- `BIN2HEX(binary, [places])` Rewrites a binary number in hexadecimal, a shorter way to write the same bits.
+- `BIN2OCT(number, [places])` Rewrites a binary number in octal, three binary digits to each octal digit.
+- `BITAND(a, b)` Compares two numbers bit by bit and keeps only the bits that are switched on in both.
+- `BITLSHIFT(number, shift)` Moves a number's bits to the left, which doubles it once for each place.
+- `BITOR(a, b)` Combines two numbers bit by bit, keeping every bit that is switched on in either.
+- `BITRSHIFT(number, shift)` Moves a number's bits to the right, which halves it once for each place, dropping any remainder.
+- `BITXOR(a, b)` Compares two numbers bit by bit and keeps the bits that are on in one but not the other.
+- `BYCOL(array, lambda)` Works out one answer for each column of a table, such as each column's largest value. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `BYROW(array, lambda)` Works out one answer for each row of a table, such as each row's total. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `CHOOSECOLS(array, col_num1, [col_num2], ...)` Picks the columns you want from a table, in the order you want them. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `CHOOSEROWS(array, row_num1, [row_num2], ...)` Picks the rows you want from a table, in the order you want them. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `CONVERT(number, from_unit, to_unit)` Changes a measurement from one unit to another, such as miles to kilometres or Fahrenheit to Celsius. Excel: Spredin does not take metric prefixes on kelvin, so CONVERT(1,"mK","K") is #N/A.
+- `DAVERAGE(database, field, criteria)` Averages one column of a table for just the rows that meet your conditions.
+- `DCOUNT(database, [field], criteria)` Counts the rows of a table that meet your conditions and hold a number in one column.
+- `DCOUNTA(database, [field], criteria)` Counts the rows of a table that meet your conditions and are not empty in one column. Excel: Spredin leaves out a cell whose formula gives empty text, though its COUNTA counts one.
+- `DEC2BIN(number, [places])` Turns an ordinary whole number into binary, the 1s and 0s computers count in.
+- `DEC2HEX(number, [places])` Turns an ordinary whole number into hexadecimal, the base-16 code used for colours and memory.
+- `DEC2OCT(number, [places])` Turns an ordinary whole number into octal, counting in eights with the digits 0 to 7.
+- `DECIMAL(text, radix)` Reads a number written in any base from 2 to 36 and gives it back as an ordinary number. Excel: Excel also refuses text longer than 255 characters, which Spredin reads; otherwise the same.
+- `DELTA(number1, [number2])` Checks whether two numbers are equal, giving 1 when they are and 0 when they are not.
+- `DGET(database, field, criteria)` Fetches the one value in a column of a table from the single row that meets your conditions.
+- `DMAX(database, field, criteria)` Finds the largest value in one column of a table among the rows that meet your conditions.
+- `DMIN(database, field, criteria)` Finds the smallest value in one column of a table among the rows that meet your conditions.
+- `DPRODUCT(database, field, criteria)` Multiplies together one column of a table for just the rows that meet your conditions.
+- `DROP(array, rows, [columns])` Leaves out the first or last few rows or columns of a list or table, such as a header or total row. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `DSUM(database, field, criteria)` Adds up one column of a table for just the rows that meet your conditions.
+- `ERF(lower, [upper])` Gives the error function, a curve from statistics and physics tied to the normal distribution.
+- `ERF.PRECISE(x)` Gives the error function from 0 up to one number, the same curve ERF draws.
+- `ERFC(x)` Gives the complementary error function, 1 minus ERF, used for the far tails of a bell curve.
+- `ERFC.PRECISE(x)` Gives the complementary error function, 1 minus ERF; the newer name for ERFC.
+- `EXPAND(array, rows, [columns], [pad_with])` Makes a list or table bigger, filling the new space with a value you choose. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `FILTER(array, include, [if_empty])` Keeps only the rows that meet a condition, such as the sales from one region. Excel: Microsoft's page gives an error when a value of include is an error or cannot be read as TRUE or FALSE; Spredin leaves such a row out. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `GESTEP(number, [step])` Gives 1 when a number reaches a threshold and 0 when it falls short of it.
+- `HEX2BIN(hex, [places])` Rewrites a hexadecimal number as the binary 1s and 0s it stands for.
+- `HEX2DEC(hex)` Turns a hexadecimal number such as FF or 1F4 back into an ordinary number.
+- `HEX2OCT(number, [places])` Rewrites a hexadecimal number in octal, counting in eights.
+- `HSTACK(array1, [array2], …)` Joins lists or tables side by side into one wider block. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `LAMBDA(parameter1, …, calculation)` Writes a small function of your own, to hand to MAP and its kind or to call by a name. Excel: Microsoft’s page shows a LAMBDA called where it is written, such as =LAMBDA(number,number+1)(1), and one that calls itself; Spredin does not run either yet. Spredin also refuses a parameter that reads as a cell address, even rate2, whose column is past XFD, the last one of an Excel sheet.
+- `LET(name1, value1, …, calculation)` Gives a name to a value inside one formula, so you can use it several times. Excel: As Microsoft’s page asks, a name must not conflict with range syntax: Spredin refuses a name that reads as a cell address (x1, a2), so use a name that is not a cell, such as rate. Spredin works out every value, even one the calculation never uses, so an error in it is the answer: LET(x,1/0,5) is #DIV/0!.
+- `MAKEARRAY(rows, columns, lambda)` Builds a table of any size, each value worked out from its row and column number. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `MAP(array1, [array2, …], lambda)` Works out the same small calculation for every value in a list and gives all the answers. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `OCT2BIN(number, [places])` Rewrites an octal number as the binary 1s and 0s it stands for.
+- `OCT2DEC(octal)` Turns an octal number, written with the digits 0 to 7, back into an ordinary number.
+- `OCT2HEX(number, [places])` Rewrites an octal number in hexadecimal, the other common shorthand for bits.
+- `REDUCE([initial_value], array, lambda)` Walks through a list keeping a running result, and gives the final result.
+- `SCAN([initial_value], array, lambda)` Walks through a list keeping a running result, and gives the result at every step, like a running total. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `SEQUENCE(rows, [cols], [start], [step])` Makes a list of numbers that count up in steps, such as 1, 2, 3, 4. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `SORT(array, [index], [order], [by_col])` Puts a list or table in order, smallest to largest or the other way round. Excel: Spredin compares all but numbers as text, so TRUE and FALSE sort among the words, text beginning with a sign such as $ comes before the numbers, and empty cells come first. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `SORTBY(array, by1, [order1], …)` Puts a list in the order of another list beside it, such as names by their scores. Excel: Spredin compares all but numbers as text, so TRUE and FALSE sort among the words, and text beginning with a sign such as $ comes before the numbers. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `TAKE(array, rows, [columns])` Keeps the first or last few rows or columns of a list or table. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `TOCOL(array, [ignore], [scan_by_column])` Lays out every value of a block of cells in a single column, one under another. Excel: With ignore 1, Spredin also leaves out a cell whose formula gives empty text. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `TOROW(array, [ignore], [scan_by_column])` Lays out every value of a block of cells in a single row, side by side. Excel: With ignore 1, Spredin also leaves out a cell whose formula gives empty text. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `UNIQUE(array, [by_col], [exactly_once])` Lists each different value once, leaving out the repeats. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `VSTACK(array1, [array2], …)` Joins lists or tables one below the other into one longer block. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `WRAPCOLS(vector, wrap_count, [pad_with])` Folds a long list into columns of a set height. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
+- `WRAPROWS(vector, wrap_count, [pad_with])` Folds a long list into rows of a set length, like text wrapping onto lines. Excel: The same values as Excel. Excel spills the result into the cells below and to the right of the formula; Spredin shows only the first value in the cell.
