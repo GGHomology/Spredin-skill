@@ -5,7 +5,7 @@ spreadsheet app: operating the app on screen (computer use), reading and writing
 its files, and writing scripts for its Python panel. It is plain Markdown plus one
 small Python script.
 
-Skill 0.2.0, for Spredin Pro 1.0.4 (`VERSION`). Repository: https://github.com/GGHomology/Spredin-skill (MIT).
+Skill 0.2.1, for Spredin Pro 1.0.4 (`VERSION`). Repository: https://github.com/GGHomology/Spredin-skill (MIT).
 
 For Claude Desktop there is also the **Spredin connector**
 (https://github.com/GGHomology/Spredin-connector): with it, Claude uses
