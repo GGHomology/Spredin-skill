@@ -31,12 +31,13 @@ through the same checks and approval rules as Spredin's own assistant.
   connect again.
 - Once Claude is allowed, reading needs no approval, and Claude can read
   **every workbook open** in Spredin, not only the one in front.
-- If a call says these tools **work only on the Mac where Spredin Pro runs**,
-  this session runs somewhere else (a Linux sandbox or virtual machine): the
-  tools cannot reach Spredin from here. Work with the workbook's file instead
+- If a call says these tools **work only on the computer where Spredin Pro
+  runs**, this session runs somewhere else (a Cowork task runs in a virtual
+  machine, for one): the tools cannot reach Spredin from here, and calling
+  them again will not help. Work with the workbook's file instead
   ([files.md](files.md)) if the person can give it to you, and tell them the
-  tools work in Claude Code on their Mac, or in Claude Desktop with the
-  Spredin Pro extension.
+  tools work in Claude Code on the computer where Spredin Pro runs, or in
+  Claude Desktop with the Spredin Pro extension.
 
 ## Which workbook
 

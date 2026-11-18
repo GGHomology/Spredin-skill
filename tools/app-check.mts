@@ -89,7 +89,7 @@ const texts: Record<string, string> = {};
 for (const form of ['compact', 'dual', 'full'] as const) {
   texts[form] = wb.toSpredinText(book(), 0, [], names, [], [], { form });
 }
-texts['plain-bom'] = '﻿' + texts.full;
+texts['plain-bom'] = '\uFEFF' + texts.full;
 for (const [form, text] of Object.entries(texts)) {
   const file = `${form}.sprd`;
   writeFileSync(join(FIX, file), form === 'plain-bom' ? text : gzipSync(Buffer.from(text, 'utf8')));
