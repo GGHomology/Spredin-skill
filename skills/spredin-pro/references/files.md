@@ -4,7 +4,7 @@
 
 | Format | Use it for | Notes |
 |---|---|---|
-| `.sprd` | Spredin's own workbooks; everything kept | gzipped JSON. Read and write with `scripts/sprd.py`. |
+| `.sprd` | Spredin's own workbooks; everything kept | gzipped JSON. Read and write with `scripts/sprd.py` where the skill has it; without it, read with Python's `gzip` and `json` (the layout below), and write `.xlsx` or `.csv` instead. |
 | `.xlsx` | Workbooks made with an Excel library (openpyxl, xlsxwriter), or shared with Excel users | Spredin opens values, formulas, formats, merges, widths, frozen panes, names, validation, conditional formats, charts, and works the formulas out on opening. |
 | `.csv` / `.tsv` | One table of plain data | Spredin reads each field as if typed: `1,200` and `$5` become numbers, `2024-01-15` a date, `007` stays text. |
 | `.json` | Computed values out of the app | File → Export Workbook as JSON: `{"sheets": [{"name", "rows"}]}`, values only. The app does not open JSON. |

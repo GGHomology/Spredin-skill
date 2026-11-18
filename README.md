@@ -5,7 +5,7 @@ spreadsheet app: operating the app on screen (computer use), reading and writing
 its files, and writing scripts for its Python panel. It is plain Markdown plus one
 small Python script.
 
-Skill 0.2.1, for Spredin Pro 1.0.4 (`VERSION`). Repository: https://github.com/GGHomology/Spredin-skill (MIT).
+Skill 0.2.2, for Spredin Pro 1.0.4 (`VERSION`). Repository: https://github.com/GGHomology/Spredin-skill (MIT).
 
 For Claude Desktop there is also the **Spredin connector**
 (https://github.com/GGHomology/Spredin-connector): with it, Claude uses
@@ -26,10 +26,13 @@ In the Claude desktop app or on claude.ai:
    are some, and check its SHA-256 against the one published with it); then
    Customize → Skills → + → Create skill → Upload a skill, and choose the zip.
 
-In Claude Code, install the Spredin Pro plugin, which carries this skill and
-Spredin's tools: `/plugin install spredin-pro --marketplace
+In Claude Code, add this skill as the Spredin Pro plugin and Spredin's tools as
+the Spredin Pro Tools plugin: `/plugin install spredin-pro --marketplace
+GGHomology/Spredin-plugin` and `/plugin install spredin-pro-tools --marketplace
 GGHomology/Spredin-plugin`. Or copy `skills/spredin-pro` into
-`~/.claude/skills/`. Skills
+`~/.claude/skills/`. The plugin's copy of the skill leaves out
+`scripts/sprd.py` (Anthropic's plugin directory takes no scripts); the skill
+says what to do without it. Skills
 enabled in the Claude app also reach Claude Code signed in to the same account.
 
 `tools/make_zip.py` builds the zip from the files git tracks under

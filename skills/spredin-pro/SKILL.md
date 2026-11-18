@@ -1,6 +1,6 @@
 ---
 name: spredin-pro
-description: Work in Spredin Pro, the Excel-compatible spreadsheet app: operate it on screen, read and write its .sprd, .xlsx and .csv files, and write scripts for its Python panel.
+description: "Work in Spredin Pro, the Excel-compatible spreadsheet app: operate it on screen, read and write its .sprd, .xlsx and .csv files, and write scripts for its Python panel."
 ---
 
 # Spredin Pro
@@ -17,7 +17,7 @@ More: [references/app.md](references/app.md).
 | Task | Best way | Read |
 |---|---|---|
 | Anything in an open workbook, when Spredin's tools (`read_range`, `write_cells`, `list_workbooks`…) are available to you | **The connector**: exact reads; changes ask the person in Spredin unless they chose to apply them without asking | [connector.md](references/connector.md) |
-| Build a new workbook from data | **Files**: write `.xlsx`, `.csv` or `.sprd`, then open it in the app | [files.md](references/files.md), `scripts/sprd.py` |
+| Build a new workbook from data | **Files**: write `.xlsx`, `.csv` or `.sprd`, then open it in the app | [files.md](references/files.md), and `scripts/sprd.py` if this copy has it (below) |
 | Change the OPEN workbook: a computed column, cleaning, a pivot, a chart, slides | **A Python script** run in the app's Python panel | [python-api.md](references/python-api.md) |
 | A few cells, a menu command, checking what the user sees | **On screen** (computer use) | [driving.md](references/driving.md) |
 
@@ -89,6 +89,14 @@ Excel on purpose): [engine.md](references/engine.md).
 - [links.md](references/links.md): official pages and support.
 
 ## `scripts/sprd.py` (Python 3, standard library only)
+
+The skill from its GitHub repository has this script beside this file. The
+Spredin Pro plugin in Anthropic's plugin directory leaves it out, since the
+directory takes no scripts. **If `scripts/sprd.py` is not here:** for a new
+workbook, write `.xlsx` (an Excel library such as openpyxl) or `.csv`, which
+Spredin opens; to read a `.sprd`, unzip and parse it with Python's own `gzip`
+and `json`, following files.md's layout section, fill lines included; for a
+workbook open in Spredin, use Spredin's tools if you have them.
 
 ```text
 python3 scripts/sprd.py info  Book.sprd                 # sheets, sizes, formulas, Pro parts

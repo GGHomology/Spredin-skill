@@ -37,6 +37,23 @@ def text_files():
                 yield os.path.join(folder, name)
 
 
+def yaml_scalar(v):
+    """A one-line YAML value as YAML reads it, or ValueError where YAML would
+    refuse it. Strict YAML refuses ": " and " #" inside a plain (unquoted)
+    value, which some loaders forgive and Anthropic's plugin directory does
+    not: a value holding them is written in double quotes."""
+    if v.startswith('"'):
+        if not v.endswith('"') or len(v) < 2:
+            raise ValueError("an unclosed double-quoted value")
+        inner = v[1:-1]
+        if re.search(r'(?<!\\)"', inner):
+            raise ValueError('a " inside a double-quoted value must be written \\"')
+        return inner.replace('\\"', '"').replace("\\\\", "\\")
+    if ": " in v or " #" in v or v[:1] in "'&*!|>%@`[]{},?-#":
+        raise ValueError(f"a plain value YAML cannot read: {v!r} (put it in double quotes)")
+    return v
+
+
 def frontmatter(text):
     m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
     if not m:
@@ -44,7 +61,7 @@ def frontmatter(text):
     fields = {}
     for line in m.group(1).splitlines():
         k, _, v = line.partition(":")
-        fields[k.strip()] = v.strip()
+        fields[k.strip()] = yaml_scalar(v.strip())
     return fields, text[m.end():]
 
 
@@ -60,6 +77,14 @@ class Shape(unittest.TestCase):
         self.assertEqual(name, os.path.basename(SKILL), "the name is the folder's name")
         self.assertRegex(name, r"^[a-z0-9-]{1,64}$")
         self.assertNotIn(name, {"claude", "anthropic", "official", "plugin", "mcp", "test"})
+
+    def test_frontmatter_values_are_yaml(self):
+        for bad in ['Do this: then that', 'a #tag', '- a list', '"open', '"a "b" c"']:
+            with self.assertRaises(ValueError, msg=bad):
+                yaml_scalar(bad)
+        self.assertEqual(yaml_scalar('"Do this: then that"'), "Do this: then that")
+        self.assertEqual(yaml_scalar('"say \\"hi\\""'), 'say "hi"')
+        self.assertEqual(yaml_scalar("plain words, fine"), "plain words, fine")
 
     def test_description(self):
         d = self.fields["description"]
