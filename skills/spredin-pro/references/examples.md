@@ -2,6 +2,11 @@
 
 Each example says which way in it uses. Keys are the Mac's.
 
+Examples 1 and 2 use `scripts/sprd.py`. Where this copy of the skill has no
+`scripts/` folder (the plugin in Anthropic's directory), read the file with
+Python's `gzip` and `json` as files.md describes, and write `.xlsx` or `.csv`
+in place of a `.sprd`.
+
 ## 1. What is in a workbook (files)
 
 ```text
