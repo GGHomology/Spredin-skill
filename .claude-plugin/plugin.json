@@ -1,6 +1,6 @@
 {
   "name": "spredin",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Helps Claude work in Spredin Pro, the Excel-compatible spreadsheet app: operating it on screen, its files, and its Python scripting API.",
   "author": { "name": "GGHomology" },
   "homepage": "https://spredin.com"

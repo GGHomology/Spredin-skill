@@ -81,7 +81,8 @@ saving over it. So: ask the user to close the window, edit, then
 
 ## The `.sprd` layout (for reading, or writing by hand)
 
-A `.sprd` is UTF-8 JSON, gzipped (the app also reads it unzipped).
+A `.sprd` is UTF-8 JSON, gzipped (the app also reads it unzipped). A gzipped
+file starts with the bytes `1f 8b`; the JSON may begin with a byte-order mark.
 
 ```text
 { "spredin": 1, "active": 0,
@@ -97,7 +98,9 @@ A `.sprd` is UTF-8 JSON, gzipped (the app also reads it unzipped).
 
 - `rows`: one CSV line per non-empty row, keyed by the row index from 0; the
   fields are the cells from column A, quoted as in CSV when they hold `,` `"` or
-  a line break. An empty field is an empty cell.
+  a line break. An empty field is an empty cell. A field is the cell's content
+  as Spredin keeps it: a formula with its `=`, a number as written, and text
+  forced with a leading apostrophe with the apostrophe (`'1200`).
 - `styles` keys are `"row:col"`, both from 0.
 - `scripts`: the workbook's Python files. An old file may have one `script`
   text instead, which Spredin opens as `main.py`.
@@ -151,8 +154,31 @@ So Spredin leaves out, with its cells:
   2^31 ranges moved to keep each column's lines in order.
 
 A defined name spelled like a cell past column XFD (`Rate1`) is the name in a
-template, not a reference. Spredin also knows the names of workbooks it opened
+template, not a reference, and a reference moved onto such a name's spelling
+becomes the name, which no longer moves. As one end of a range
+(`Rate1:A{row}`) the same spelling is a reference, whose row would need its
+own placeholder, so that line is left out. Spredin also knows the names of workbooks it opened
 earlier; `sprd.py` knows only this file's.
+
+### Odd lines, as Spredin reads them
+
+Spredin never writes these; they matter for a file someone edited by hand.
+
+- The range: `$` signs (`$A$1:$A$3`), leading zeros (`A01`), more than one
+  space before the template, and a third part (`A1:A3:Z9`, read as `A1:A3`)
+  are all accepted. A line reaching past row 16,777,216 is left out.
+- Steps: `{row+007}` is `{row+7}`; `{row+0}` and `{row-0}` are `{row}`; all
+  kept.
+- Curly quotes (`“` `”`) count as double quotes, as in Spredin's formulas: a
+  placeholder between them is inside quoted text (the line is left out), and a
+  string opened with `"` can close with `“`.
+- A range whose ends are reversed (`C:$B`, `4:$3`): the first cell keeps it as
+  written; every moved copy writes the ends in order (`$B:C`).
+- A reference to row 0 (`$A$0`): the first cell keeps it as written; in every
+  moved copy it is `#REF!`.
+- A reference moved past the last column, ZZZZ, stops being a reference: it is
+  the word it became, the same in every row (`ZZZZ1` moved one column right is
+  `AAAAA1`, in row 2 too).
 
 `sprd.py read` applies all of this: it prints each cell's content as Spredin
 reads it, with fills expanded in the compact form and the rows alone in the
