@@ -26,7 +26,10 @@ In the Claude desktop app or on claude.ai:
    are some, and check its SHA-256 against the one published with it); then
    Customize → Skills → + → Create skill → Upload a skill, and choose the zip.
 
-In Claude Code, copy `skills/spredin-pro` into `~/.claude/skills/`. Skills
+In Claude Code, install the Spredin Pro plugin, which carries this skill and
+Spredin's tools: `/plugin install spredin-pro --marketplace
+GGHomology/Spredin-plugin`. Or copy `skills/spredin-pro` into
+`~/.claude/skills/`. Skills
 enabled in the Claude app also reach Claude Code signed in to the same account.
 
 `tools/make_zip.py` builds the zip from the files git tracks under
